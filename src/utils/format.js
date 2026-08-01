@@ -23,10 +23,18 @@ export function formatPct(value, digits = 1) {
   return `${pct.toFixed(digits)}%`
 }
 
+const MULTIPLE_RATIO_KEYS = new Set([
+  'current_ratio',
+  'quick_ratio',
+  'cash_ratio',
+  'cash_cl_ratio',
+  'debt_to_equity',
+])
+
 export function formatRatio(key, value) {
   if (value == null || Number.isNaN(Number(value))) return '—'
   const n = Number(value)
-  if (key === 'current_ratio' || key === 'quick_ratio') {
+  if (MULTIPLE_RATIO_KEYS.has(key)) {
     return n.toFixed(2)
   }
   return formatPct(n)

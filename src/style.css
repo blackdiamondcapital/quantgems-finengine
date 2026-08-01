@@ -9,8 +9,8 @@
   --paper: #e8e4dc;
   --paper-dim: rgba(232, 228, 220, 0.62);
   --muted: #8b929e;
-  --up: #3ecf9a;
-  --down: #e07a6a;
+  --up: #e07a6a;
+  --down: #3ecf9a;
   --line: rgba(232, 228, 220, 0.1);
   --line-strong: rgba(45, 212, 191, 0.28);
   --display: 'Syne', 'Noto Sans TC', sans-serif;
@@ -83,6 +83,21 @@ button.ghost {
 button.ghost:hover:not(:disabled) {
   background: var(--brass-dim);
   border-color: var(--brass);
+}
+
+button.nav-back {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0.2rem 0.15rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+button.nav-back:hover:not(:disabled) {
+  color: var(--brass);
+  background: transparent;
 }
 
 button.tab {

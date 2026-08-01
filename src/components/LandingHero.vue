@@ -15,6 +15,13 @@ const periodText = computed(() => {
   return p || '—'
 })
 
+const fieldTotal = computed(() => {
+  const s = props.stats
+  if (!s) return null
+  const n = (s.incomeFields || 0) + (s.balanceFields || 0) + (s.cashflowFields || 0)
+  return n || null
+})
+
 let sectionObserver = null
 
 onMounted(() => {
@@ -238,7 +245,7 @@ onBeforeUnmount(() => {
     <div class="data-metrics">
       <div><strong class="display">{{ Number(stats?.companies || 0).toLocaleString('zh-TW') }}</strong><span>涵蓋公司</span></div>
       <div><strong class="display">{{ Number(stats?.income || 0).toLocaleString('zh-TW') }}</strong><span>損益紀錄</span></div>
-      <div><strong class="display">3</strong><span>核心財務報表</span></div>
+      <div><strong class="display">{{ fieldTotal ? fieldTotal.toLocaleString('zh-TW') : '—' }}</strong><span>涵蓋科目</span></div>
       <div><strong class="display">{{ periodText }}</strong><span>最新資料期別</span></div>
     </div>
   </section>

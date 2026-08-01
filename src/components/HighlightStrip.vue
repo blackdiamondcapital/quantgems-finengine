@@ -12,13 +12,16 @@ const latestRatio = computed(() => props.ratios?.[0] || null)
 const tiles = computed(() => {
   const h = props.highlight || {}
   const r = latestRatio.value || {}
+  const grossMargin = h.gross_margin ?? r.gross_margin
+  const roe = h.roe ?? r.roe
+  const ratioSub = h.periodLabel || r.periodLabel || ''
   return [
     { k: '營收', v: formatMoney(h.revenue), sub: h.periodLabel || '' },
     { k: '營業利益', v: formatMoney(h.op_profit), sub: h.periodLabel || '' },
     { k: '本期淨利', v: formatMoney(h.net_profit), sub: h.periodLabel || '' },
     { k: 'EPS', v: formatMoney(h.eps, { isEps: true }), sub: '基本' },
-    { k: '毛利率', v: formatRatio('gross_margin', r.gross_margin), sub: r.periodLabel || '' },
-    { k: 'ROE', v: formatRatio('roe', r.roe), sub: r.periodLabel || '' },
+    { k: '毛利率', v: formatRatio('gross_margin', grossMargin), sub: ratioSub },
+    { k: 'ROE', v: formatRatio('roe', roe), sub: ratioSub },
   ]
 })
 </script>

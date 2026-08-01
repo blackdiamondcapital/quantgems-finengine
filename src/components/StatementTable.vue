@@ -1,17 +1,55 @@
 <script setup>
-import { computed } from 'vue'
-import { changeClass, changePct, formatMoney } from '../utils/format'
+import { computed, ref } from 'vue'
+import { changeClass, changePct, formatMoney, formatRatio } from '../utils/format'
 
 const props = defineProps({
   payload: { type: Object, default: null },
   loading: { type: Boolean, default: false },
+  fieldTotal: { type: Number, default: null },
 })
 
+const emit = defineEmits(['toggle-full'])
+
+const query = ref('')
+
 const periods = computed(() => props.payload?.periods || [])
-const sections = computed(() => props.payload?.sections || [])
+
+const totalFields = computed(
+  () => props.payload?.fieldTotal ?? props.fieldTotal ?? null,
+)
+
+const shownFields = computed(() => props.payload?.fieldShown ?? null)
+
+const showAllFields = computed(() => props.payload?.showAllFields ?? false)
+
+const sections = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  const src = props.payload?.sections || []
+  if (!q) return src
+
+  return src
+    .map((sec) => ({
+      ...sec,
+      items: sec.items.filter(
+        (item) =>
+          item.label?.toLowerCase().includes(q) ||
+          item.key?.toLowerCase().includes(q),
+      ),
+    }))
+    .filter((sec) => sec.items.length)
+})
+
+const visibleCount = computed(() =>
+  sections.value.reduce((n, sec) => n + sec.items.length, 0),
+)
 
 function cell(item, periodValue) {
   return item.values?.[periodValue]
+}
+
+function formatCell(item, value) {
+  if (item?.isRatio) return formatRatio(item.key, value)
+  return formatMoney(value, { isEps: item?.isEps })
 }
 
 function delta(item, periodValue, idx) {
@@ -24,8 +62,36 @@ function delta(item, periodValue, idx) {
 
 <template>
   <div class="table-shell">
+    <div v-if="payload && !loading" class="toolbar">
+      <div class="counts muted">
+        <span v-if="shownFields != null && totalFields != null">
+          顯示 {{ query ? visibleCount : shownFields }} / {{ totalFields }} 科目
+        </span>
+        <span v-else-if="visibleCount">共 {{ visibleCount }} 科目</span>
+      </div>
+      <div class="toolbar-actions">
+        <input
+          v-model="query"
+          class="search"
+          type="search"
+          placeholder="搜尋科目名稱或代碼…"
+          aria-label="搜尋科目"
+        />
+        <label class="toggle-full">
+          <input
+            type="checkbox"
+            :checked="showAllFields"
+            @change="emit('toggle-full', ($event.target).checked)"
+          />
+          顯示全部科目
+        </label>
+      </div>
+    </div>
+
     <div v-if="loading" class="state muted">讀取報表中…</div>
-    <div v-else-if="!payload || !sections.length" class="state muted">尚無此報表資料</div>
+    <div v-else-if="!payload || !sections.length" class="state muted">
+      {{ query ? '找不到符合的科目' : '尚無此報表資料' }}
+    </div>
     <div v-else class="scroller">
       <table>
         <thead>
@@ -52,7 +118,6 @@ function delta(item, periodValue, idx) {
             >
               <td class="sticky col-item">
                 <span class="label">{{ item.label }}</span>
-                <span class="key muted mono">{{ item.key }}</span>
               </td>
               <td
                 v-for="(p, idx) in periods"
@@ -60,7 +125,7 @@ function delta(item, periodValue, idx) {
                 class="col-num mono"
                 :class="changeClass(cell(item, p.value), cell(item, periods[idx + 1]?.value))"
               >
-                <div class="val">{{ formatMoney(cell(item, p.value), { isEps: item.isEps }) }}</div>
+                <div class="val">{{ formatCell(item, cell(item, p.value)) }}</div>
                 <div v-if="delta(item, p.value, idx) != null" class="delta">
                   {{ delta(item, p.value, idx) > 0 ? '+' : '' }}{{ delta(item, p.value, idx).toFixed(1) }}%
                 </div>
@@ -78,6 +143,53 @@ function delta(item, periodValue, idx) {
   border: 1px solid var(--line);
   background: rgba(10, 12, 18, 0.55);
   min-height: 280px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid rgba(232, 228, 220, 0.06);
+}
+
+.counts {
+  font-size: 0.82rem;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.search {
+  min-width: min(280px, 100%);
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  background: rgba(8, 10, 14, 0.85);
+  color: var(--paper);
+  font-size: 0.88rem;
+}
+
+.search:focus {
+  outline: none;
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.toggle-full {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .state {
@@ -158,13 +270,6 @@ thead .sticky {
 
 .label {
   display: block;
-}
-
-.key {
-  display: block;
-  font-size: 0.68rem;
-  margin-top: 0.15rem;
-  opacity: 0.7;
 }
 
 .val { font-size: 0.92rem; }

@@ -1,30 +1,56 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import SymbolSearch from './SymbolSearch.vue'
 import HighlightStrip from './HighlightStrip.vue'
-import TrendChart from './TrendChart.vue'
 import StatementTable from './StatementTable.vue'
+import VisualPanel from './VisualPanel.vue'
 
 const props = defineProps({
   seedCode: { type: String, default: '2330' },
 })
-defineEmits(['back'])
+defineEmits(['back', 'goto-screener'])
 
 const code = ref(props.seedCode || '2330')
 const symbol = ref(null)
 const overview = ref(null)
 const kind = ref('income')
 const statement = ref(null)
+const fieldMeta = ref(null)
+const showAllFields = ref(false)
+const incomeBasis = ref('single')
+const viewMode = ref('table')
 const loadingOverview = ref(false)
 const loadingStatement = ref(false)
 const error = ref('')
 
-const tabs = [
+const tabDefs = [
   { id: 'income', label: '損益表' },
   { id: 'balance', label: '資產負債' },
   { id: 'cashflow', label: '現金流量' },
+  { id: 'ratios', label: '財務比率' },
+  { id: 'combined', label: '綜合報表' },
 ]
+
+const tabs = computed(() =>
+  tabDefs.map((t) => ({
+    ...t,
+    count: fieldMeta.value?.fieldCounts?.[t.id] ?? null,
+  })),
+)
+
+const statementLimit = computed(() => (viewMode.value === 'visual' ? 12 : 8))
+const statementFull = computed(
+  () => viewMode.value === 'visual' || showAllFields.value,
+)
+
+async function loadMeta() {
+  try {
+    fieldMeta.value = await api.meta()
+  } catch {
+    fieldMeta.value = null
+  }
+}
 
 async function loadAll(nextCode) {
   const c = (nextCode || code.value || '').trim()
@@ -34,10 +60,13 @@ async function loadAll(nextCode) {
   loadingOverview.value = true
   loadingStatement.value = true
   try {
-    const ov = await api.overview(c)
+    const ov = await api.overview(c, { basis: incomeBasis.value })
     overview.value = ov
     symbol.value = ov.symbol
-    const st = await api.statement(c, kind.value, 8)
+    const st = await api.statement(c, kind.value, statementLimit.value, {
+      full: statementFull.value,
+      basis: incomeBasis.value,
+    })
     statement.value = st
   } catch (e) {
     error.value = e?.message || '載入失敗'
@@ -54,7 +83,10 @@ async function loadStatement() {
   loadingStatement.value = true
   error.value = ''
   try {
-    statement.value = await api.statement(code.value, kind.value, 8)
+    statement.value = await api.statement(code.value, kind.value, statementLimit.value, {
+      full: statementFull.value,
+      basis: incomeBasis.value,
+    })
   } catch (e) {
     error.value = e?.message || '報表載入失敗'
     statement.value = null
@@ -67,17 +99,56 @@ function onSelect(item) {
   loadAll(item.code)
 }
 
+function onToggleFull(checked) {
+  showAllFields.value = checked
+  loadStatement()
+}
+
+async function reloadOverview() {
+  if (!code.value) return
+  loadingOverview.value = true
+  try {
+    overview.value = await api.overview(code.value, { basis: incomeBasis.value })
+  } catch (e) {
+    error.value = e?.message || '概覽載入失敗'
+  } finally {
+    loadingOverview.value = false
+  }
+}
+
+function setIncomeBasis(next) {
+  if (incomeBasis.value === next) return
+  incomeBasis.value = next
+  reloadOverview()
+  if (kind.value === 'income' || kind.value === 'combined' || kind.value === 'ratios') {
+    loadStatement()
+  }
+}
+
+function setViewMode(next) {
+  if (viewMode.value === next) return
+  const prevLimit = statementLimit.value
+  const prevFull = statementFull.value
+  viewMode.value = next
+  if (statementLimit.value !== prevLimit || statementFull.value !== prevFull) {
+    loadStatement()
+  }
+}
+
 watch(kind, () => {
   loadStatement()
 })
 
-onMounted(() => loadAll(props.seedCode || '2330'))
+onMounted(async () => {
+  await loadMeta()
+  loadAll(props.seedCode || '2330')
+})
 </script>
 
 <template>
   <section class="engine">
     <header class="bar">
-      <button class="ghost" type="button" @click="$emit('back')">← 首頁</button>
+      <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
         <img
           class="brand-icon"
@@ -93,6 +164,7 @@ onMounted(() => loadAll(props.seedCode || '2330'))
         </span>
       </div>
       <div class="spacer" />
+      <button class="ghost" type="button" @click="$emit('goto-screener')">選股</button>
     </header>
 
     <div class="search-block">
@@ -122,9 +194,7 @@ onMounted(() => loadAll(props.seedCode || '2330'))
       :ratios="overview.ratios"
     />
 
-    <div class="grid">
-      <TrendChart v-if="overview?.trend?.length" :trend="overview.trend" />
-      <div class="statement-pane">
+    <div class="statement-pane">
         <div class="tabs">
           <button
             v-for="t in tabs"
@@ -135,10 +205,79 @@ onMounted(() => loadAll(props.seedCode || '2330'))
             @click="kind = t.id"
           >
             {{ t.label }}
+            <span v-if="t.count" class="tab-count mono">{{ t.count }}</span>
           </button>
         </div>
-        <StatementTable :payload="statement" :loading="loadingStatement || loadingOverview" />
-      </div>
+        <div class="toolbar-row">
+          <div class="view-bar">
+            <span class="basis-label muted">顯示模式</span>
+            <div class="basis-toggle">
+              <button
+                type="button"
+                class="basis-btn"
+                :class="{ active: viewMode === 'table' }"
+                @click="setViewMode('table')"
+              >
+                表格
+              </button>
+              <button
+                type="button"
+                class="basis-btn"
+                :class="{ active: viewMode === 'visual' }"
+                @click="setViewMode('visual')"
+              >
+                視覺化
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="kind === 'income' || kind === 'combined' || kind === 'ratios'"
+            class="basis-bar"
+          >
+            <span class="basis-label muted">
+              {{ kind === 'ratios' ? '比率計算' : '損益表顯示' }}
+            </span>
+            <div class="basis-toggle">
+              <button
+                type="button"
+                class="basis-btn"
+                :class="{ active: incomeBasis === 'single' }"
+                @click="setIncomeBasis('single')"
+              >
+                單季
+              </button>
+              <button
+                type="button"
+                class="basis-btn"
+                :class="{ active: incomeBasis === 'cumulative' }"
+                @click="setIncomeBasis('cumulative')"
+              >
+                累計
+              </button>
+            </div>
+            <span class="basis-hint muted">
+              {{
+                kind === 'ratios'
+                  ? '毛利率／ROE 等依損益單季或累計重算'
+                  : 'Q4 原為全年累計；切換後自動換算'
+              }}
+            </span>
+          </div>
+        </div>
+        <StatementTable
+          v-if="viewMode === 'table'"
+          :payload="statement"
+          :loading="loadingStatement || loadingOverview"
+          :field-total="fieldMeta?.fieldCounts?.[kind]"
+          @toggle-full="onToggleFull"
+        />
+        <VisualPanel
+          v-else
+          :kind="kind"
+          :payload="statement"
+          :loading="loadingStatement || loadingOverview"
+          :income-basis="incomeBasis"
+        />
     </div>
   </section>
 </template>
@@ -234,21 +373,75 @@ h1 {
   letter-spacing: 0.08em;
 }
 
-.grid {
-  display: grid;
-  gap: 1.25rem;
-  margin-top: 1.25rem;
-}
-
 .statement-pane {
   display: grid;
   gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 
 .tabs {
   display: flex;
   gap: 1.35rem;
   border-bottom: 1px solid var(--line);
+}
+
+.tab-count {
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.tab.active .tab-count {
+  color: var(--aqua);
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.5rem;
+}
+
+.view-bar,
+.basis-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.basis-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+.basis-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.basis-btn {
+  padding: 0.35rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.basis-btn + .basis-btn {
+  border-left: 1px solid var(--line);
+}
+
+.basis-btn.active {
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--aqua);
+}
+
+.basis-hint {
+  font-size: 0.72rem;
 }
 
 .error {
@@ -258,11 +451,5 @@ h1 {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
-}
-
-@media (min-width: 1100px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>
