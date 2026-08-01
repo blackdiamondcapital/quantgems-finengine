@@ -79,9 +79,18 @@ onMounted(() => loadAll(props.seedCode || '2330'))
     <header class="bar">
       <button class="ghost" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
-        <span class="mark display">QUANTGEMS</span>
-        <span class="sep muted">/</span>
-        <span class="prod">財報引擎</span>
+        <img
+          class="brand-icon"
+          src="/quantgems-finengine-icon.png"
+          alt="QuantGems 財報引擎"
+          width="30"
+          height="30"
+          decoding="async"
+        />
+        <span class="brand-title">
+          <span class="brand-title__name">QuantGems®</span>
+          <span class="brand-title__tag">財報引擎</span>
+        </span>
       </div>
       <div class="spacer" />
     </header>
@@ -152,20 +161,39 @@ onMounted(() => loadAll(props.seedCode || '2330'))
 
 .brand-line {
   display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  letter-spacing: 0.08em;
+  align-items: center;
+  gap: 8px;
 }
 
-.mark {
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  background: #0a0e14;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--sans);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.brand-title__name {
+  font-weight: 700;
+  color: #e8eef8;
+}
+
+.brand-title__tag {
+  font-weight: 600;
   color: var(--aqua);
-  font-weight: 800;
-  font-size: 1rem;
-}
-
-.prod {
-  color: var(--brass);
-  font-size: 0.92rem;
+  letter-spacing: 0.02em;
 }
 
 .spacer { flex: 1; }

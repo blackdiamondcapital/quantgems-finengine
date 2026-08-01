@@ -59,9 +59,18 @@ onBeforeUnmount(() => {
 
     <header class="topbar anim-rise">
       <div class="brand-lockup">
-        <span class="mark">QUANTGEMS</span>
-        <span class="divider" />
-        <span class="product muted">STATEMENT ENGINE</span>
+        <img
+          class="brand-icon"
+          src="/quantgems-finengine-icon.png"
+          alt="QuantGems 財報引擎"
+          width="40"
+          height="40"
+          decoding="async"
+        />
+        <span class="brand-title">
+          <span class="brand-title__name">QuantGems®</span>
+          <span class="brand-title__tag">財報引擎</span>
+        </span>
       </div>
       <nav class="topnav" aria-label="頁面導覽">
         <a href="#capabilities">核心能力</a>
@@ -72,9 +81,9 @@ onBeforeUnmount(() => {
 
     <div class="hero-stage">
       <div class="copy anim-rise">
-        <p class="eyebrow mono">TAIWAN EQUITY INTELLIGENCE / 01</p>
-        <p class="brand display">QUANTGEMS</p>
-        <h1 class="headline display anim-rise anim-rise-delay-1">財報引擎</h1>
+        <p class="eyebrow">台股基本面情報 · 01</p>
+        <p class="brand">QuantGems®</p>
+        <h1 class="headline anim-rise anim-rise-delay-1">財報引擎</h1>
         <p class="lead anim-rise anim-rise-delay-2">
           不只是看數字，而是看見企業如何運轉。把季報切成可讀的切面——損益、資產負債、現金流，一次對齊。
         </p>
@@ -84,8 +93,8 @@ onBeforeUnmount(() => {
           <span>關鍵比率</span>
         </div>
         <div class="actions anim-rise anim-rise-delay-3">
-          <button class="cta" type="button" :disabled="!ready" @click="$emit('enter')">
-            進入引擎
+          <button class="cta with-arrow" type="button" :disabled="!ready" @click="$emit('enter')">
+            進入引擎 <span class="arrow">→</span>
           </button>
           <button class="ghost" type="button" :disabled="!ready" @click="$emit('enter')">
             以台積電示範
@@ -97,17 +106,17 @@ onBeforeUnmount(() => {
         <div class="facet-panel">
           <div class="facet-ring" />
           <div class="facet-inner">
-            <span class="facet-label">STATEMENT CUT</span>
+            <span class="facet-label">財報切面</span>
             <ul class="ledger">
-              <li><span>營收</span><i /><b>Revenue</b></li>
-              <li><span>毛利</span><i /><b>Gross</b></li>
-              <li class="on"><span>營業利益</span><i /><b>Operating</b></li>
-              <li><span>淨利</span><i /><b>Net</b></li>
-              <li><span>現金流</span><i /><b>Cash</b></li>
+              <li><span>營收</span><i /><b>成長力</b></li>
+              <li><span>毛利</span><i /><b>獲利率</b></li>
+              <li class="on"><span>營業利益</span><i /><b>本業力</b></li>
+              <li><span>淨利</span><i /><b>盈餘</b></li>
+              <li><span>現金流</span><i /><b>現金力</b></li>
             </ul>
             <div class="facet-foot">
-              <span>IFRS · 季報</span>
-              <span class="mono">三表對齊</span>
+              <span>合併季報</span>
+              <span>三表對齊</span>
             </div>
           </div>
         </div>
@@ -127,17 +136,17 @@ onBeforeUnmount(() => {
   <section id="capabilities" class="content-section capabilities reveal-section">
     <div class="section-heading">
       <div>
-        <p class="section-index mono">01 / READ THE BUSINESS</p>
+        <p class="section-index">01 · 讀懂企業</p>
         <h2 class="display">一份財報，三個觀察角度</h2>
       </div>
       <p>將分散的會計科目重新排列成投資人真正需要的營運脈絡。</p>
     </div>
 
     <div class="statement-cards">
-      <article class="statement-card income-card">
+      <article class="statement-card income-card" style="--accent: #2dd4bf; --accent-soft: rgba(45, 212, 191, 0.16)">
         <div class="card-top">
           <span class="card-no mono">01</span>
-          <span class="card-code mono">INCOME</span>
+          <span class="card-code">損益表</span>
         </div>
         <h3>獲利的品質</h3>
         <p>從營收到淨利，追蹤毛利率、營益率與 EPS，辨認成長來自本業還是業外。</p>
@@ -148,10 +157,10 @@ onBeforeUnmount(() => {
         </ul>
       </article>
 
-      <article class="statement-card balance-card">
+      <article class="statement-card balance-card" style="--accent: #d4a574; --accent-soft: rgba(212, 165, 116, 0.16)">
         <div class="card-top">
           <span class="card-no mono">02</span>
-          <span class="card-code mono">BALANCE</span>
+          <span class="card-code">資產負債</span>
         </div>
         <h3>體質的韌性</h3>
         <p>檢視資產配置、負債壓力與股東權益，理解企業承受景氣循環的能力。</p>
@@ -162,10 +171,10 @@ onBeforeUnmount(() => {
         </ul>
       </article>
 
-      <article class="statement-card cash-card">
+      <article class="statement-card cash-card" style="--accent: #3ecf9a; --accent-soft: rgba(62, 207, 154, 0.16)">
         <div class="card-top">
           <span class="card-no mono">03</span>
-          <span class="card-code mono">CASH FLOW</span>
+          <span class="card-code">現金流量</span>
         </div>
         <h3>現金的方向</h3>
         <p>對照營業、投資與籌資現金流，判讀帳面獲利是否真正轉化為現金。</p>
@@ -180,7 +189,7 @@ onBeforeUnmount(() => {
 
   <section id="workflow" class="content-section workflow reveal-section">
     <div class="workflow-copy">
-      <p class="section-index mono">02 / FROM DATA TO SIGNAL</p>
+      <p class="section-index">02 · 從資料到訊號</p>
       <h2 class="display">把複雜季報，縮成清楚的判讀順序</h2>
       <p class="workflow-lead">
         先看趨勢，再查結構，最後驗證現金。QuantGems 讓每一次財報研究都有一致的起點。
@@ -223,7 +232,7 @@ onBeforeUnmount(() => {
 
   <section class="content-section data-section reveal-section">
     <div class="data-copy">
-      <p class="section-index mono">03 / COVERAGE</p>
+      <p class="section-index">03 · 資料涵蓋</p>
       <h2 class="display">不是範例資料，<br>是持續更新的台股財報庫。</h2>
     </div>
     <div class="data-metrics">
@@ -235,7 +244,7 @@ onBeforeUnmount(() => {
   </section>
 
   <section class="final-cta reveal-section">
-    <p class="mono">QUANTGEMS / STATEMENT ENGINE</p>
+    <p>QuantGems® 財報引擎</p>
     <h2 class="display">數字很多，真正重要的是脈絡。</h2>
     <button class="cta" type="button" :disabled="!ready" @click="$emit('enter')">進入財報引擎</button>
   </section>
@@ -316,7 +325,40 @@ onBeforeUnmount(() => {
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+  background: #0a0e14;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: 1.55rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.brand-title__name {
+  font-weight: 700;
+  color: #e8eef8;
+}
+
+.brand-title__tag {
+  font-weight: 600;
+  color: var(--aqua);
+  letter-spacing: 0.02em;
 }
 
 .topnav {
@@ -326,36 +368,36 @@ onBeforeUnmount(() => {
 }
 
 .topnav a {
+  position: relative;
   color: var(--muted);
   text-decoration: none;
   font-size: 0.76rem;
   letter-spacing: 0.08em;
+  padding-bottom: 0.25rem;
   transition: color 0.2s;
 }
 
+.topnav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--aqua);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .topnav a:hover { color: var(--paper); }
+.topnav a:hover::after { transform: scaleX(1); }
 
 .topnav button {
   padding: 0.48rem 0.8rem;
   font-size: 0.74rem;
 }
 
-.mark {
-  font-family: var(--display);
-  font-weight: 800;
-  color: var(--aqua);
-}
-
-.divider {
-  width: 28px;
-  height: 1px;
-  background: var(--line);
-}
-
-.product {
-  letter-spacing: 0.22em;
-  font-size: 0.72rem;
-}
 
 .hero-stage {
   display: grid;
@@ -379,29 +421,29 @@ onBeforeUnmount(() => {
 .eyebrow {
   margin: 0 0 1rem;
   color: var(--aqua);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
 .brand {
   margin: 0;
-  font-size: clamp(2.6rem, 6.5vw, 5.2rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  font-family: var(--sans);
+  font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   white-space: nowrap;
-  background: linear-gradient(115deg, var(--paper) 15%, var(--aqua) 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #f0f4fa;
 }
 
 .headline {
-  margin: 0.7rem 0 0;
-  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--brass);
+  margin: 0.55rem 0 0;
+  font-family: var(--sans);
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--aqua);
 }
 
 .lead {
@@ -420,6 +462,16 @@ onBeforeUnmount(() => {
   margin-top: 2rem;
 }
 
+.with-arrow .arrow {
+  display: inline-block;
+  margin-left: 0.3rem;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.with-arrow:hover:not(:disabled) .arrow {
+  transform: translateX(4px);
+}
+
 .hero-points {
   display: flex;
   flex-wrap: wrap;
@@ -428,12 +480,30 @@ onBeforeUnmount(() => {
 }
 
 .hero-points span {
-  padding: 0.3rem 0.55rem;
-  border-left: 1px solid var(--aqua);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(45, 212, 191, 0.22);
   background: rgba(45, 212, 191, 0.05);
   color: var(--paper-dim);
   font-size: 0.75rem;
   letter-spacing: 0.08em;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.hero-points span::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  background: var(--aqua);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.hero-points span:hover {
+  border-color: rgba(45, 212, 191, 0.5);
+  color: var(--paper);
 }
 
 .visual {
@@ -475,9 +545,9 @@ onBeforeUnmount(() => {
 
 .facet-label {
   display: block;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.18em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   color: var(--aqua);
   margin-bottom: 1rem;
 }
@@ -614,6 +684,24 @@ onBeforeUnmount(() => {
   transition-delay: 0.3s;
 }
 
+.reveal-section.is-visible .statement-card:hover,
+.reveal-section.is-visible .steps li:hover {
+  transition-delay: 0s;
+}
+
+.reveal-section.is-visible .statement-card:hover {
+  transform: translateY(-5px);
+}
+
+.reveal-section.is-visible .steps li:hover {
+  transform: translateY(-4px);
+}
+
+.workflow.reveal-section.is-visible .steps li:nth-child(2):hover,
+.workflow.reveal-section.is-visible .steps li:nth-child(4):hover {
+  transform: translateY(calc(1.25rem - 4px));
+}
+
 .section-heading {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
@@ -625,8 +713,9 @@ onBeforeUnmount(() => {
 .section-index {
   margin: 0 0 1rem;
   color: var(--aqua);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
 .section-heading h2,
@@ -657,14 +746,33 @@ onBeforeUnmount(() => {
 }
 
 .statement-card {
+  --accent: var(--aqua);
+  --accent-soft: rgba(45, 212, 191, 0.16);
   position: relative;
   min-height: 390px;
   padding: 2rem;
   border-right: 1px solid var(--line);
   overflow: hidden;
+  transition:
+    opacity 0.6s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.3s ease;
 }
 
 .statement-card:last-child { border-right: 0; }
+
+.statement-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent 70%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
 .statement-card::after {
   content: '';
@@ -674,37 +782,61 @@ onBeforeUnmount(() => {
   right: -75px;
   bottom: -75px;
   transform: rotate(45deg);
-  border: 1px solid rgba(45, 212, 191, 0.15);
+  border: 1px solid var(--accent-soft);
+  transition: border-color 0.3s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.balance-card::after { border-color: rgba(212, 165, 116, 0.22); }
+.statement-card:hover {
+  background:
+    radial-gradient(340px 240px at 85% 100%, var(--accent-soft), transparent 70%),
+    rgba(12, 15, 22, 0.5);
+  transform: translateY(-5px);
+}
+
+.statement-card:hover::before {
+  transform: scaleX(1);
+}
+
+.statement-card:hover::after {
+  transform: rotate(45deg) scale(1.12);
+}
 
 .card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   color: var(--muted);
-  font-size: 0.88rem;
-  letter-spacing: 0.12em;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
 }
 
 .card-no {
-  color: var(--aqua);
-  font-size: 1rem;
+  color: var(--accent);
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-code {
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   font-weight: 500;
 }
 
-.balance-card .card-no { color: var(--brass); }
-
 .statement-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   margin: 4.5rem 0 1rem;
   font-family: var(--display);
   font-size: 1.65rem;
+}
+
+.statement-card h3::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  transform: rotate(45deg);
+  flex-shrink: 0;
 }
 
 .statement-card > p {
@@ -725,12 +857,17 @@ onBeforeUnmount(() => {
 
 .statement-card li {
   margin-top: 0.45rem;
+  transition: color 0.2s;
+}
+
+.statement-card:hover li {
+  color: var(--paper-dim);
 }
 
 .statement-card li::before {
   content: '—';
   margin-right: 0.55rem;
-  color: var(--aqua);
+  color: var(--accent);
 }
 
 .workflow {
@@ -898,11 +1035,24 @@ onBeforeUnmount(() => {
   padding: 1.25rem;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  transition:
+    opacity 0.6s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.25s ease;
+}
+
+.data-metrics > div:hover {
+  background: rgba(45, 212, 191, 0.05);
 }
 
 .data-metrics strong {
   color: var(--aqua);
   font-size: clamp(1.6rem, 3vw, 2.5rem);
+  letter-spacing: -0.02em;
+}
+
+.data-metrics > div:nth-child(2n) strong {
+  color: var(--brass);
 }
 
 .data-metrics span {
@@ -921,22 +1071,39 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.final-cta::before {
+.final-cta::before,
+.final-cta::after {
   content: '';
   position: absolute;
-  width: 520px;
-  height: 520px;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
   border: 1px solid rgba(45, 212, 191, 0.12);
   pointer-events: none;
 }
 
+.final-cta::before {
+  width: 520px;
+  height: 520px;
+  animation: diamondSpin 60s linear infinite;
+}
+
+.final-cta::after {
+  width: 380px;
+  height: 380px;
+  border-color: rgba(212, 165, 116, 0.12);
+  animation: diamondSpin 45s linear infinite reverse;
+}
+
+@keyframes diamondSpin {
+  from { transform: translate(-50%, -50%) rotate(45deg); }
+  to { transform: translate(-50%, -50%) rotate(405deg); }
+}
+
 .final-cta p {
   color: var(--aqua);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
 .final-cta h2 {
@@ -950,7 +1117,7 @@ onBeforeUnmount(() => {
 
   .brand {
     white-space: normal;
-    font-size: clamp(2.4rem, 12vw, 3.6rem);
+    font-size: clamp(2.1rem, 10vw, 3.2rem);
   }
 
   .lead {
@@ -989,10 +1156,19 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 560px) {
-  .product,
-  .divider,
   .topnav {
     display: none;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .brand-title {
+    font-size: 1.25rem;
+    gap: 8px;
   }
 
   .foot-note { width: 100%; margin: 0.3rem 0 0; }
@@ -1010,6 +1186,11 @@ onBeforeUnmount(() => {
     transform: none;
     filter: none;
     transition: none;
+  }
+
+  .final-cta::before,
+  .final-cta::after {
+    animation: none;
   }
 }
 </style>
