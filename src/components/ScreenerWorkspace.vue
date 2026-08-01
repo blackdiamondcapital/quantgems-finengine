@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { formatMoney, formatRatio } from '../utils/format'
+import AuthBar from './AuthBar.vue'
 
 const emit = defineEmits(['open-stock', 'goto-engine', 'back'])
 
@@ -196,6 +197,7 @@ onMounted(async () => {
       </div>
       <div class="spacer" />
       <button class="ghost" type="button" @click="$emit('goto-engine')">財報工作台</button>
+      <AuthBar />
     </header>
 
     <div class="intro">

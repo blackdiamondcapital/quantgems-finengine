@@ -100,6 +100,46 @@ button.nav-back:hover:not(:disabled) {
   background: transparent;
 }
 
+button.btn-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+button.btn-auth.google {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(66, 133, 244, 0.4);
+  color: var(--paper);
+}
+
+button.btn-auth.google:hover:not(:disabled) {
+  border-color: #4285F4;
+  background: rgba(66, 133, 244, 0.12);
+}
+
+button.btn-auth.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 0.35rem 0.65rem;
+}
+
+button.btn-auth.ghost:hover:not(:disabled) {
+  color: var(--brass);
+  border-color: rgba(212, 165, 116, 0.4);
+  background: var(--brass-dim);
+}
+
+.g-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 button.tab {
   border: none;
   border-bottom: 2px solid transparent;

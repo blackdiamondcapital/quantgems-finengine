@@ -5,6 +5,7 @@ import SymbolSearch from './SymbolSearch.vue'
 import HighlightStrip from './HighlightStrip.vue'
 import StatementTable from './StatementTable.vue'
 import VisualPanel from './VisualPanel.vue'
+import AuthBar from './AuthBar.vue'
 
 const props = defineProps({
   seedCode: { type: String, default: '2330' },
@@ -164,7 +165,17 @@ onMounted(async () => {
         </span>
       </div>
       <div class="spacer" />
-      <button class="ghost" type="button" @click="$emit('goto-screener')">選股</button>
+      <button class="btn-screener" type="button" @click="$emit('goto-screener')">
+        <span class="btn-screener__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 5h16l-6.2 7.4V18l-3.6 2v-7.6L4 5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+            <circle cx="17.2" cy="7.2" r="1.35" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="btn-screener__label">選股</span>
+        <span class="btn-screener__spark" aria-hidden="true" />
+      </button>
+      <AuthBar />
     </header>
 
     <div class="search-block">
@@ -336,6 +347,94 @@ onMounted(async () => {
 }
 
 .spacer { flex: 1; }
+
+.btn-screener {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.95rem 0.42rem 0.7rem;
+  border: 1px solid rgba(45, 212, 191, 0.45);
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.06) 55%, rgba(212, 165, 116, 0.1));
+  color: var(--aqua);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1),
+    border-color 0.2s,
+    box-shadow 0.25s,
+    color 0.2s;
+}
+
+.btn-screener__icon {
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.18);
+  transition: transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.btn-screener__icon svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+.btn-screener__label {
+  position: relative;
+  z-index: 1;
+}
+
+.btn-screener__spark {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.45rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brass);
+  opacity: 0.75;
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.75);
+  animation: screenerSpark 1.8s ease-in-out infinite;
+}
+
+.btn-screener:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  border-color: rgba(45, 212, 191, 0.85);
+  color: #7ef0dc;
+  background:
+    linear-gradient(145deg, rgba(45, 212, 191, 0.32), rgba(45, 212, 191, 0.1) 55%, rgba(212, 165, 116, 0.16));
+  box-shadow: 0 8px 22px rgba(45, 212, 191, 0.18);
+}
+
+.btn-screener:hover:not(:disabled) .btn-screener__icon {
+  transform: rotate(-12deg) scale(1.08);
+}
+
+.btn-screener:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+@keyframes screenerSpark {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-screener,
+  .btn-screener__icon {
+    transition: none;
+  }
+  .btn-screener__spark {
+    animation: none;
+  }
+}
 
 .search-block {
   max-width: 560px;

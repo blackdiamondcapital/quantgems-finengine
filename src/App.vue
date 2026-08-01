@@ -1,16 +1,37 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api } from './api'
+import { useAuth } from './lib/auth'
 import LandingHero from './components/LandingHero.vue'
 import EngineWorkspace from './components/EngineWorkspace.vue'
 import ScreenerWorkspace from './components/ScreenerWorkspace.vue'
+
+const {
+  isAuthenticated,
+  user,
+  setToken,
+  fetchCurrentUser,
+  consumeOAuthCallbackFromUrl,
+} = useAuth()
 
 const view = ref('engine')
 const stats = ref(null)
 const ready = ref(false)
 const seedCode = ref('2330')
+const authStatus = ref('')
 
 onMounted(async () => {
+  const oauth = consumeOAuthCallbackFromUrl()
+  if (oauth.error) {
+    authStatus.value = `登入失敗：${oauth.error}`
+  } else if (oauth.token) {
+    setToken(oauth.token)
+    const me = await fetchCurrentUser()
+    authStatus.value = me.success ? '已用 Google 登入' : (me.error || '登入狀態同步失敗')
+  } else if (isAuthenticated.value && !user.value) {
+    await fetchCurrentUser()
+  }
+
   try {
     const [s] = await Promise.all([api.stats(), api.health()])
     stats.value = s
@@ -32,6 +53,7 @@ function openStock(code) {
 </script>
 
 <template>
+  <p v-if="authStatus" class="auth-status muted">{{ authStatus }}</p>
   <LandingHero
     v-if="view === 'landing'"
     :stats="stats"
@@ -52,3 +74,12 @@ function openStock(code) {
     @goto-screener="view = 'screener'"
   />
 </template>
+
+<style scoped>
+.auth-status {
+  margin: 0;
+  padding: 0.45rem 1.25rem;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--line);
+}
+</style>
