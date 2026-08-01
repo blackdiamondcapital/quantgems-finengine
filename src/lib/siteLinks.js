@@ -1,5 +1,5 @@
 /** QuantGems 生態系站點連結 */
 export const MAIN_SITE_URL = 'https://www.quantgems.com/'
-export const PRICING_URL = 'https://www.quantgems.com/?view=pricing'
+export const PRICING_URL = 'https://www.quantgems.com/pricing'
 export const FINENGINE_URL = 'https://fs.quantgems.com/'
 export const WARRANT_URL = 'https://warrant.quantgems.com/'
