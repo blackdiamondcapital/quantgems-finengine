@@ -10,7 +10,7 @@ export function buildOAuthStartUrl(provider = 'google') {
   const siteOrigin =
     typeof window !== 'undefined' && window.location?.origin
       ? String(window.location.origin).replace(/\/$/, '')
-      : String(import.meta.env.VITE_SITE_URL || 'https://quantgems-finengine.vercel.app')
+      : String(import.meta.env.VITE_SITE_URL || 'https://fs.quantgems.com')
           .trim()
           .replace(/\/$/, '')
 

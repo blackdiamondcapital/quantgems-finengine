@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-const DEFAULT_SITE_URL = 'https://quantgems-finengine.vercel.app'
+const DEFAULT_SITE_URL = 'https://fs.quantgems.com'
 
 function siteUrlPlugin(siteUrl) {
   return {

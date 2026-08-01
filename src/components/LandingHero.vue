@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { MAIN_SITE_URL } from '../lib/siteLinks'
 
 const props = defineProps({
   stats: { type: Object, default: null },
@@ -80,6 +81,7 @@ onBeforeUnmount(() => {
         </span>
       </div>
       <nav class="topnav" aria-label="頁面導覽">
+        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
         <a href="#capabilities">核心能力</a>
         <a href="#workflow">解讀流程</a>
         <button type="button" :disabled="!ready" @click="$emit('enter')">開啟工作台</button>
@@ -1120,7 +1122,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 899px) {
-  .topnav a { display: none; }
+  .topnav a:not(.home-link) { display: none; }
 
   .brand {
     white-space: normal;

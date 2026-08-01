@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { formatMoney, formatRatio } from '../utils/format'
 import AuthBar from './AuthBar.vue'
+import { MAIN_SITE_URL } from '../lib/siteLinks'
 
 const emit = defineEmits(['open-stock', 'goto-engine', 'back'])
 
@@ -180,6 +181,7 @@ onMounted(async () => {
 <template>
   <section class="screener">
     <header class="bar">
+      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
       <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
         <img

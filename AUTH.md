@@ -18,6 +18,7 @@ localStorage 與主站相同：`quantgem_auth_token`、`quantgem_user`（不同 
 
 在主站 Node／Render 後端允許下列 origin，否則 Google 登入 callback 會失敗：
 
+- `https://fs.quantgems.com`
 - `https://quantgems-finengine.vercel.app`
 - 本地開發（可選）：`http://localhost:5178`
 

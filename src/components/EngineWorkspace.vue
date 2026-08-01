@@ -6,6 +6,7 @@ import HighlightStrip from './HighlightStrip.vue'
 import StatementTable from './StatementTable.vue'
 import VisualPanel from './VisualPanel.vue'
 import AuthBar from './AuthBar.vue'
+import { MAIN_SITE_URL } from '../lib/siteLinks'
 
 const props = defineProps({
   seedCode: { type: String, default: '2330' },
@@ -149,6 +150,7 @@ onMounted(async () => {
 <template>
   <section class="engine">
     <header class="bar">
+      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
       <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
         <img
