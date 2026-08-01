@@ -150,11 +150,14 @@ onMounted(async () => {
 <template>
   <section class="engine">
     <header class="bar">
-      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
-        <span class="home-link__full">QuantGems® 主站</span>
-        <span class="home-link__short">主站</span>
-      </a>
-      <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
+      <div class="bar-nav">
+        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
+          <span class="home-link__full">QuantGems® 主站</span>
+          <span class="home-link__short">主站</span>
+        </a>
+        <span class="nav-sep" aria-hidden="true">·</span>
+        <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
+      </div>
       <div class="brand-line">
         <img
           class="brand-icon"
@@ -319,6 +322,19 @@ onMounted(async () => {
   row-gap: 0.65rem;
   margin-bottom: 1.5rem;
   min-width: 0;
+}
+
+.bar-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.nav-sep {
+  color: var(--muted);
+  opacity: 0.55;
+  font-size: 0.75rem;
 }
 
 .bar-actions {
@@ -590,34 +606,53 @@ h1 {
 
 @media (max-width: 767px) {
   .bar {
-    gap: 0.45rem 0.55rem;
-    margin-bottom: 1.1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand actions"
+      "nav nav";
+    gap: 0.55rem 0.65rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
   }
 
   .spacer { display: none; }
 
+  .brand-line {
+    grid-area: brand;
+  }
+
+  .bar-actions {
+    grid-area: actions;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .bar-nav {
+    grid-area: nav;
+    width: 100%;
+    gap: 0.15rem;
+    padding-top: 0.15rem;
+  }
+
   .brand-title {
-    font-size: 1.05rem;
-    white-space: normal;
+    font-size: 1.08rem;
+    white-space: nowrap;
     gap: 6px;
   }
 
   .brand-title__name { display: none; }
 
   .brand-icon {
-    width: 32px;
-    height: 32px;
-  }
-
-  .bar-actions {
-    width: 100%;
-    justify-content: flex-end;
-    margin-left: 0;
+    width: 34px;
+    height: 34px;
   }
 
   .btn-screener {
-    min-height: 44px;
-    padding: 0.45rem 0.95rem 0.45rem 0.7rem;
+    min-height: 40px;
+    padding: 0.4rem 0.85rem 0.4rem 0.65rem;
+    font-size: 0.84rem;
   }
 
   .search-block {

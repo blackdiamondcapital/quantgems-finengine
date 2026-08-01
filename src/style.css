@@ -129,20 +129,27 @@ a.home-link:hover {
   a.home-link {
     font-size: 0.78rem;
     letter-spacing: 0.02em;
+    min-height: 36px;
   }
 
   .home-link__full { display: none; }
   .home-link__short { display: inline; }
 
   button.nav-back {
-    min-height: 44px;
-    padding: 0.45rem 0.25rem;
-    font-size: 0.84rem;
+    min-height: 36px;
+    padding: 0.3rem 0.2rem;
+    font-size: 0.8rem;
   }
 
   button.btn-auth {
-    min-height: 44px;
-    padding: 0.45rem 0.8rem;
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  button.btn-auth.google .g-icon + span,
+  button.btn-auth.google {
+    letter-spacing: 0;
   }
 }
 
