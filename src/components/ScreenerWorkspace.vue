@@ -181,7 +181,10 @@ onMounted(async () => {
 <template>
   <section class="screener">
     <header class="bar">
-      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
+      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
+        <span class="home-link__full">QuantGems® 主站</span>
+        <span class="home-link__short">主站</span>
+      </a>
       <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
         <img
@@ -198,8 +201,13 @@ onMounted(async () => {
         </span>
       </div>
       <div class="spacer" />
-      <button class="ghost" type="button" @click="$emit('goto-engine')">財報工作台</button>
-      <AuthBar />
+      <div class="bar-actions">
+        <button class="ghost btn-engine" type="button" @click="$emit('goto-engine')">
+          <span class="btn-engine__full">財報工作台</span>
+          <span class="btn-engine__short">財報</span>
+        </button>
+        <AuthBar />
+      </div>
     </header>
 
     <div class="intro">
@@ -343,22 +351,38 @@ onMounted(async () => {
 .screener {
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(1rem, 2.5vw, 1.75rem);
+  padding: clamp(0.85rem, 2.5vw, 1.75rem);
+  padding-bottom: calc(clamp(0.85rem, 2.5vw, 1.75rem) + env(safe-area-inset-bottom));
   max-width: 1280px;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  row-gap: 0.65rem;
   margin-bottom: 1.25rem;
+  min-width: 0;
 }
+
+.bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.btn-engine__short { display: none; }
 
 .brand-line {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .brand-icon {
@@ -485,6 +509,7 @@ onMounted(async () => {
 .table-shell {
   border: 1px solid var(--line);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   max-height: min(65vh, 640px);
   background: rgba(10, 12, 18, 0.55);
 }
@@ -569,8 +594,78 @@ thead .sticky {
   font-size: 0.9rem;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1023px) {
   .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .brand-title { font-size: 1.15rem; }
+}
+
+@media (max-width: 767px) {
+  .bar {
+    gap: 0.45rem 0.55rem;
+  }
+
+  .spacer { display: none; }
+
+  .brand-title {
+    font-size: 1.05rem;
+    gap: 6px;
+  }
+
+  .brand-title__name { display: none; }
+
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bar-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .btn-engine {
+    min-height: 44px;
+    padding: 0.55rem 0.9rem;
+  }
+
+  .btn-engine__full { display: none; }
+  .btn-engine__short { display: inline; }
+
+  .presets {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+    padding: 0.75rem;
+  }
+
+  .filters input,
+  .filters select {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .filter-actions {
+    justify-content: stretch;
+  }
+
+  .filter-actions button {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .result-bar {
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .page-btn {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 0.4rem 0.65rem;
+  }
 }
 </style>

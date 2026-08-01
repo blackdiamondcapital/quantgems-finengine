@@ -82,4 +82,11 @@ function openStock(code) {
   font-size: 0.82rem;
   border-bottom: 1px solid var(--line);
 }
+
+@media (max-width: 767px) {
+  .auth-status {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.78rem;
+  }
+}
 </style>

@@ -72,4 +72,14 @@ async function handleLogout() {
   background: linear-gradient(135deg, var(--aqua), #5eead4);
   flex-shrink: 0;
 }
+
+@media (max-width: 767px) {
+  .auth-user {
+    max-width: 7.5rem;
+  }
+
+  .auth-name {
+    font-size: 0.78rem;
+  }
+}
 </style>

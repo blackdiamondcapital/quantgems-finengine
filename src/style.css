@@ -28,9 +28,16 @@
 
 * { box-sizing: border-box; }
 html, body, #app { margin: 0; min-height: 100%; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
 body {
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   background:
     radial-gradient(1200px 700px at 78% -8%, rgba(45, 212, 191, 0.12), transparent 55%),
     radial-gradient(900px 560px at -5% 30%, rgba(212, 165, 116, 0.08), transparent 50%),
@@ -107,10 +114,36 @@ a.home-link {
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 a.home-link:hover {
   color: var(--aqua);
+}
+
+.home-link__short { display: none; }
+
+@media (max-width: 767px) {
+  a.home-link {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+  }
+
+  .home-link__full { display: none; }
+  .home-link__short { display: inline; }
+
+  button.nav-back {
+    min-height: 44px;
+    padding: 0.45rem 0.25rem;
+    font-size: 0.84rem;
+  }
+
+  button.btn-auth {
+    min-height: 44px;
+    padding: 0.45rem 0.8rem;
+  }
 }
 
 button.btn-auth {

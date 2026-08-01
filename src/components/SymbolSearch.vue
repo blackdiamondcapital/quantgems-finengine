@@ -156,4 +156,24 @@ function onEnter() {
   margin: 0.4rem 0 0;
   font-size: 0.78rem;
 }
+
+@media (max-width: 767px) {
+  .row input {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .row button {
+    min-height: 48px;
+    min-width: 4.5rem;
+  }
+
+  .menu li {
+    grid-template-columns: 3.8rem 1fr auto;
+    gap: 0.5rem;
+    padding: 0.8rem 0.85rem;
+    min-height: 48px;
+    align-items: center;
+  }
+}
 </style>

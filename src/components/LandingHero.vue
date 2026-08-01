@@ -81,7 +81,10 @@ onBeforeUnmount(() => {
         </span>
       </div>
       <nav class="topnav" aria-label="頁面導覽">
-        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
+        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
+          <span class="home-link__full">QuantGems® 主站</span>
+          <span class="home-link__short">主站</span>
+        </a>
         <a href="#capabilities">核心能力</a>
         <a href="#workflow">解讀流程</a>
         <button type="button" :disabled="!ready" @click="$emit('enter')">開啟工作台</button>
@@ -1164,11 +1167,31 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 560px) {
-  .topnav {
-    display: none;
+@media (max-width: 767px) {
+  .topbar {
+    gap: 0.5rem;
+    align-items: flex-start;
   }
 
+  .topnav {
+    display: flex;
+    gap: 0.55rem;
+    flex-shrink: 0;
+  }
+
+  .topnav a:not(.home-link) { display: none; }
+
+  .topnav button {
+    min-height: 44px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  .brand-title__name { display: none; }
+}
+
+@media (max-width: 560px) {
   .brand-icon {
     width: 36px;
     height: 36px;
@@ -1176,8 +1199,22 @@ onBeforeUnmount(() => {
   }
 
   .brand-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     gap: 8px;
+  }
+
+  .hero-points {
+    gap: 0.45rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions button {
+    min-height: 48px;
+    width: 100%;
   }
 
   .foot-note { width: 100%; margin: 0.3rem 0 0; }

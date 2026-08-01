@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
   min-height: 300px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 1023px) {
   .visual {
     grid-template-columns: 1fr;
   }
@@ -561,6 +561,21 @@ onBeforeUnmount(() => {
 
   .menu-scroll {
     max-height: 240px;
+  }
+}
+
+@media (max-width: 767px) {
+  .menu-scroll {
+    max-height: 180px;
+  }
+
+  .chart {
+    min-height: 220px;
+    height: min(40vh, 320px);
+  }
+
+  .state {
+    min-height: 220px;
   }
 }
 </style>

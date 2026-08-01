@@ -199,6 +199,7 @@ function delta(item, periodValue, idx) {
 
 .scroller {
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   max-height: min(70vh, 720px);
 }
 
@@ -282,4 +283,37 @@ thead .sticky {
 
 .up .delta { color: var(--up); }
 .down .delta { color: var(--down); }
+
+@media (max-width: 767px) {
+  .toolbar {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .search {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .toggle-full {
+    min-height: 40px;
+  }
+
+  .scroller {
+    max-height: min(60vh, 560px);
+  }
+
+  .col-item {
+    min-width: 140px;
+  }
+
+  th, td {
+    padding: 0.6rem 0.65rem;
+  }
+}
 </style>

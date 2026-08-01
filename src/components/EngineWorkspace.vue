@@ -150,7 +150,10 @@ onMounted(async () => {
 <template>
   <section class="engine">
     <header class="bar">
-      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">QuantGems® 主站</a>
+      <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
+        <span class="home-link__full">QuantGems® 主站</span>
+        <span class="home-link__short">主站</span>
+      </a>
       <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
       <div class="brand-line">
         <img
@@ -167,17 +170,19 @@ onMounted(async () => {
         </span>
       </div>
       <div class="spacer" />
-      <button class="btn-screener" type="button" @click="$emit('goto-screener')">
-        <span class="btn-screener__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4 5h16l-6.2 7.4V18l-3.6 2v-7.6L4 5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-            <circle cx="17.2" cy="7.2" r="1.35" fill="currentColor"/>
-          </svg>
-        </span>
-        <span class="btn-screener__label">選股</span>
-        <span class="btn-screener__spark" aria-hidden="true" />
-      </button>
-      <AuthBar />
+      <div class="bar-actions">
+        <button class="btn-screener" type="button" @click="$emit('goto-screener')">
+          <span class="btn-screener__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h16l-6.2 7.4V18l-3.6 2v-7.6L4 5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+              <circle cx="17.2" cy="7.2" r="1.35" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="btn-screener__label">選股</span>
+          <span class="btn-screener__spark" aria-hidden="true" />
+        </button>
+        <AuthBar />
+      </div>
     </header>
 
     <div class="search-block">
@@ -299,22 +304,36 @@ onMounted(async () => {
 .engine {
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(1rem, 2.5vw, 1.75rem);
+  padding: clamp(0.85rem, 2.5vw, 1.75rem);
+  padding-bottom: calc(clamp(0.85rem, 2.5vw, 1.75rem) + env(safe-area-inset-bottom));
   max-width: 1280px;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  row-gap: 0.65rem;
   margin-bottom: 1.5rem;
+  min-width: 0;
+}
+
+.bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .brand-line {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .brand-icon {
@@ -482,8 +501,17 @@ h1 {
 
 .tabs {
   display: flex;
+  flex-wrap: nowrap;
   gap: 1.35rem;
   border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.tabs .tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .tab-count {
@@ -552,5 +580,69 @@ h1 {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+}
+
+@media (max-width: 1023px) {
+  .brand-title {
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .bar {
+    gap: 0.45rem 0.55rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .spacer { display: none; }
+
+  .brand-title {
+    font-size: 1.05rem;
+    white-space: normal;
+    gap: 6px;
+  }
+
+  .brand-title__name { display: none; }
+
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bar-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .btn-screener {
+    min-height: 44px;
+    padding: 0.45rem 0.95rem 0.45rem 0.7rem;
+  }
+
+  .search-block {
+    max-width: none;
+    margin-bottom: 1.1rem;
+  }
+
+  .identity {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tagline {
+    order: -1;
+  }
+
+  .tabs {
+    gap: 0.85rem;
+  }
+
+  .tab-count { display: none; }
+
+  .basis-hint {
+    width: 100%;
+    line-height: 1.4;
+  }
 }
 </style>
