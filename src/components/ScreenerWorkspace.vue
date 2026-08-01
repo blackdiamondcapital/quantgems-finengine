@@ -3,9 +3,29 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { formatMoney, formatRatio } from '../utils/format'
 import AuthBar from './AuthBar.vue'
-import { MAIN_SITE_URL } from '../lib/siteLinks'
+import { MAIN_SITE_URL, PRICING_URL } from '../lib/siteLinks'
+import { useAuth } from '../lib/auth'
+import { buildOAuthStartUrl } from '../lib/oauthStart'
+import {
+  canUseScreener,
+  SCREENER_LOGIN_REQUIRED_MESSAGE,
+  SCREENER_PLAN_REQUIRED_MESSAGE,
+} from '../utils/planAccess'
 
 const emit = defineEmits(['open-stock', 'goto-engine', 'back'])
+
+const { user, isAuthenticated } = useAuth()
+const allowed = computed(() => canUseScreener(user.value))
+const gateKind = computed(() => {
+  if (allowed.value) return null
+  if (!isAuthenticated.value || !user.value) return 'login'
+  return 'plan'
+})
+const gateMessage = computed(() => (
+  gateKind.value === 'login'
+    ? SCREENER_LOGIN_REQUIRED_MESSAGE
+    : SCREENER_PLAN_REQUIRED_MESSAGE
+))
 
 const loading = ref(false)
 const error = ref('')
@@ -73,6 +93,7 @@ function buildQuery() {
 }
 
 async function loadMeta() {
+  if (!allowed.value) return
   try {
     meta.value = await api.screenerMeta()
   } catch {
@@ -81,6 +102,10 @@ async function loadMeta() {
 }
 
 async function runScreen() {
+  if (!allowed.value) {
+    result.value = null
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -91,6 +116,10 @@ async function runScreen() {
   } finally {
     loading.value = false
   }
+}
+
+function startGoogleLogin() {
+  window.location.href = buildOAuthStartUrl('google')
 }
 
 function applyPreset(id) {
@@ -172,7 +201,18 @@ watch(
   },
 )
 
+watch(allowed, async (ok) => {
+  if (!ok) {
+    result.value = null
+    meta.value = null
+    return
+  }
+  await loadMeta()
+  await runScreen()
+})
+
 onMounted(async () => {
+  if (!allowed.value) return
   await loadMeta()
   await runScreen()
 })
@@ -219,8 +259,35 @@ onMounted(async () => {
         以季報財務比率篩選台股；點選股票可進入財報引擎查看完整報表。
         <span v-if="result?.periodLabel">資料期別 {{ result.periodLabel }}</span>
       </p>
+      <p class="pro-badge muted">Pro 方案功能</p>
     </div>
 
+    <div v-if="!allowed" class="pro-gate anim-rise">
+      <p class="pro-gate__eyebrow">QuantGems® Pro</p>
+      <h2 class="pro-gate__title">財務選股需 Pro 方案</h2>
+      <p class="pro-gate__msg muted">{{ gateMessage }}</p>
+      <div class="pro-gate__actions">
+        <button
+          v-if="gateKind === 'login'"
+          type="button"
+          class="cta"
+          @click="startGoogleLogin"
+        >
+          Google 登入
+        </button>
+        <a
+          class="cta pro-gate__link"
+          :href="PRICING_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          前往方案頁
+        </a>
+        <button type="button" class="ghost" @click="$emit('goto-engine')">返回財報工作台</button>
+      </div>
+    </div>
+
+    <template v-else>
     <div class="presets">
       <button
         v-for="p in presets"
@@ -347,6 +414,7 @@ onMounted(async () => {
         </tbody>
       </table>
     </div>
+    </template>
   </section>
 </template>
 
@@ -436,6 +504,62 @@ onMounted(async () => {
 .intro p {
   margin: 0.4rem 0 0;
   font-size: 0.9rem;
+}
+
+.pro-badge {
+  display: inline-block;
+  margin-top: 0.55rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--aqua);
+}
+
+.pro-gate {
+  margin-top: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  background:
+    linear-gradient(160deg, rgba(45, 212, 191, 0.1), transparent 55%),
+    rgba(10, 12, 18, 0.65);
+  max-width: 36rem;
+}
+
+.pro-gate__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--aqua);
+}
+
+.pro-gate__title {
+  margin: 0.55rem 0 0;
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  font-weight: 700;
+}
+
+.pro-gate__msg {
+  margin: 0.65rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.pro-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+a.pro-gate__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  padding: 0.7rem 1.15rem;
 }
 
 .presets {

@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { getEffectivePlanKey } from '../utils/planAccess'
 
 /** Same storage keys as www.quantgems.com */
 const TOKEN_KEY = 'quantgem_auth_token'
@@ -48,10 +49,11 @@ const displayName = computed(() => {
   return u.username || u.full_name || u.email || '會員'
 })
 const planLabel = computed(() => {
-  const p = String(user.value?.plan || 'free').toLowerCase()
+  const p = getEffectivePlanKey(user.value)
   if (p === 'admin') return 'Admin'
-  if (p === 'prime' || p === 'enterprise') return 'Prime'
+  if (p === 'prime') return 'Prime'
   if (p === 'pro') return 'Pro'
+  if (p === 'lite_free') return 'Free'
   return 'Free'
 })
 

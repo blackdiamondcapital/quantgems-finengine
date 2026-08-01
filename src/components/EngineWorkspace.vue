@@ -182,6 +182,7 @@ onMounted(async () => {
             </svg>
           </span>
           <span class="btn-screener__label">選股</span>
+          <span class="btn-screener__pro">Pro</span>
           <span class="btn-screener__spark" aria-hidden="true" />
         </button>
         <AuthBar />
@@ -426,6 +427,18 @@ onMounted(async () => {
 .btn-screener__label {
   position: relative;
   z-index: 1;
+}
+
+.btn-screener__pro {
+  position: relative;
+  z-index: 1;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.08rem 0.32rem;
+  border-radius: 999px;
+  color: #041311;
+  background: linear-gradient(135deg, var(--brass), #e8c9a0);
 }
 
 .btn-screener__spark {
