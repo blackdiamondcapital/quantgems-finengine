@@ -5,6 +5,7 @@ import { useAuth } from './lib/auth'
 import LandingHero from './components/LandingHero.vue'
 import EngineWorkspace from './components/EngineWorkspace.vue'
 import ScreenerWorkspace from './components/ScreenerWorkspace.vue'
+import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 
 const {
   isAuthenticated,
@@ -66,6 +67,7 @@ function openStock(code) {
 </script>
 
 <template>
+  <PwaInstallPrompt />
   <p v-if="authStatus" class="auth-status muted">{{ authStatus }}</p>
   <LandingHero
     v-if="view === 'landing'"
