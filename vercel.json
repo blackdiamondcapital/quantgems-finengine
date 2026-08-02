@@ -47,7 +47,7 @@
       "destination": "/api/index"
     },
     {
-      "source": "/((?!robots\\.txt|sitemap\\.xml|og-image\\.png|apple-touch-icon\\.png|pwa-icon.*|quantgems-finengine-icon\\.(svg|png)|manifest\\.webmanifest|sw\\.js|workbox-.*|registerSW\\.js|assets/).*)",
+      "source": "/((?!robots\\.txt|sitemap\\.xml|og-image\\.png|apple-touch-icon\\.png|pwa-icon.*|quantgems-finengine-icon\\.svg|quantgems-finengine-icon\\.png|manifest\\.webmanifest|sw\\.js|workbox-.*|registerSW\\.js|assets/).*)",
       "destination": "/index.html"
     }
   ]
