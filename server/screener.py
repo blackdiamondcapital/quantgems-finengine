@@ -14,6 +14,12 @@ PRESETS: dict[str, dict[str, Any]] = {
         "desc": "ROE ≥ 15%，負債比 ≤ 50%",
         "filters": {"roe_min": 0.15, "debt_ratio_max": 0.5},
     },
+    "roe_streak2": {
+        "id": "roe_streak2",
+        "label": "連續兩季高 ROE",
+        "desc": "連續兩季 ROE ≥ 15%",
+        "filters": {"roe_min": 0.15, "roe_min_streak": 2},
+    },
     "quality": {
         "id": "quality",
         "label": "優質獲利",
@@ -86,6 +92,20 @@ def _parse_int(raw: Optional[str], default: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, n))
 
 
+def _prev_period(period: str) -> Optional[str]:
+    """YYYYQQ（如 202501）→ 上一季（202404）。"""
+    p = str(period or "")
+    if len(p) < 6 or not p[:4].isdigit() or not p[4:6].isdigit():
+        return None
+    year = int(p[:4])
+    quarter = int(p[4:6])
+    if quarter < 1 or quarter > 4:
+        return None
+    if quarter <= 1:
+        return f"{year - 1}04"
+    return f"{year}{quarter - 1:02d}"
+
+
 def parse_screener_args(args) -> dict[str, Any]:
     preset = (args.get("preset") or "").strip().lower()
     filters: dict[str, Any] = {}
@@ -101,6 +121,23 @@ def parse_screener_args(args) -> dict[str, Any]:
         val = _parse_float(args.get(key))
         if val is not None:
             filters[key] = val
+
+    # 連續 N 季 ROE：query 可覆寫 preset
+    streak_raw = args.get("roe_min_streak")
+    if streak_raw is not None and str(streak_raw).strip() != "":
+        streak = _parse_int(streak_raw, 0, 0, 8)
+        if streak >= 2:
+            filters["roe_min_streak"] = streak
+        else:
+            filters.pop("roe_min_streak", None)
+    elif "roe_min_streak" in filters:
+        streak = int(filters.get("roe_min_streak") or 0)
+        if streak < 2:
+            filters.pop("roe_min_streak", None)
+
+    # 勾選連續兩季但未給 ROE 門檻時，預設 15%
+    if int(filters.get("roe_min_streak") or 0) >= 2 and "roe_min" not in filters:
+        filters["roe_min"] = 0.15
 
     market = (args.get("market") or "both").strip().lower()
     if market not in ("listed", "otc", "both"):
@@ -183,6 +220,28 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
                 continue
             where.append(f"r.{col} IS NOT NULL AND r.{col} {op} %s")
             binds.append(params["filters"][key])
+
+        # 連續兩季（或以上）ROE：當季已由 roe_min 約束，再要求前一季達標
+        streak = int(params["filters"].get("roe_min_streak") or 0)
+        if streak >= 2:
+            roe_floor = params["filters"].get("roe_min")
+            if roe_floor is None:
+                roe_floor = 0.15
+            prev = _prev_period(str(period))
+            if prev:
+                where.append(
+                    f"""EXISTS (
+                      SELECT 1 FROM {ratios_t} r_prev
+                      WHERE r_prev.symbol = r.symbol
+                        AND r_prev.period = %s
+                        AND r_prev.roe IS NOT NULL
+                        AND r_prev.roe >= %s
+                    )"""
+                )
+                binds.extend([prev, roe_floor])
+            else:
+                # 無法推算上一季 → 不通過任何人
+                where.append("FALSE")
 
         # valuation filters need bwibbu join
         need_bwibbu = any(k in params["filters"] for k in ("pe_max", "pb_max", "dy_min"))

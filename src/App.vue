@@ -21,6 +21,15 @@ const seedCode = ref('2330')
 const authStatus = ref('')
 
 onMounted(async () => {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if ((params.get('view') || '') === 'screener') {
+      view.value = 'screener'
+    }
+  } catch {
+    /* ignore */
+  }
+
   const oauth = consumeOAuthCallbackFromUrl()
   if (oauth.error) {
     authStatus.value = `登入失敗：${oauth.error}`
@@ -46,6 +55,10 @@ function enter() {
   view.value = 'engine'
 }
 
+function openScreener() {
+  view.value = 'screener'
+}
+
 function openStock(code) {
   seedCode.value = code || '2330'
   view.value = 'engine'
@@ -59,10 +72,11 @@ function openStock(code) {
     :stats="stats"
     :ready="ready"
     @enter="enter"
+    @goto-screener="openScreener"
   />
   <ScreenerWorkspace
     v-else-if="view === 'screener'"
-    @back="view = 'landing'"
+    @back="view = 'engine'"
     @goto-engine="view = 'engine'"
     @open-stock="openStock"
   />

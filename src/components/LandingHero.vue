@@ -6,7 +6,7 @@ const props = defineProps({
   stats: { type: Object, default: null },
   ready: { type: Boolean, default: false },
 })
-defineEmits(['enter'])
+defineEmits(['enter', 'goto-screener'])
 
 const periodText = computed(() => {
   const p = String(props.stats?.latestPeriod || '')
@@ -87,6 +87,7 @@ onBeforeUnmount(() => {
         </a>
         <a href="#capabilities">核心能力</a>
         <a href="#workflow">解讀流程</a>
+        <button type="button" :disabled="!ready" @click="$emit('goto-screener')">財務選股</button>
         <button type="button" :disabled="!ready" @click="$emit('enter')">開啟工作台</button>
       </nav>
     </header>
@@ -107,6 +108,9 @@ onBeforeUnmount(() => {
         <div class="actions anim-rise anim-rise-delay-3">
           <button class="cta with-arrow" type="button" :disabled="!ready" @click="$emit('enter')">
             進入引擎 <span class="arrow">→</span>
+          </button>
+          <button class="ghost" type="button" :disabled="!ready" @click="$emit('goto-screener')">
+            財務選股
           </button>
           <button class="ghost" type="button" :disabled="!ready" @click="$emit('enter')">
             以台積電示範

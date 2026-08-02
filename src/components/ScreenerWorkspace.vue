@@ -28,9 +28,12 @@ const gateMessage = computed(() => (
 ))
 
 const loading = ref(false)
+const exporting = ref(false)
 const error = ref('')
 const meta = ref(null)
 const result = ref(null)
+const resultKeyword = ref('')
+const syncingUrl = ref(false)
 
 const form = reactive({
   preset: 'high_roe',
@@ -38,12 +41,18 @@ const form = reactive({
   industry: '',
   period: 'latest',
   roe_min: '',
+  roa_min: '',
   gross_margin_min: '',
+  op_margin_min: '',
+  net_margin_min: '',
   debt_ratio_max: '',
   current_ratio_min: '',
+  quick_ratio_min: '',
+  revenue_min: '',
   pe_max: '',
   pb_max: '',
   dy_min: '',
+  roe_min_streak: false,
   sort: 'roe',
   dir: 'desc',
   page: 1,
@@ -57,39 +66,98 @@ const total = computed(() => result.value?.total || 0)
 const pageSize = computed(() => result.value?.pageSize || 50)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
+const filteredItems = computed(() => {
+  const q = resultKeyword.value.trim().toLowerCase()
+  if (!q) return items.value
+  return items.value.filter((row) => {
+    const code = String(row.code || '').toLowerCase()
+    const name = String(row.name || '').toLowerCase()
+    return code.includes(q) || name.includes(q)
+  })
+})
+
 function pctInputToRatio(v) {
   if (v === '' || v == null) return undefined
   const n = Number(v)
   if (Number.isNaN(n)) return undefined
-  // 使用者輸入百分比：15 → 0.15
   return n > 1 || n < -1 ? n / 100 : n
 }
 
-function buildQuery() {
+function ratioToPctInput(v) {
+  if (v == null || v === '') return ''
+  const n = Number(v)
+  if (Number.isNaN(n)) return ''
+  const pct = Math.abs(n) <= 5 ? n * 100 : n
+  return String(Number(pct.toFixed(4)))
+}
+
+function buildQuery({ page, pageSize: size } = {}) {
   const q = {
     market: form.market,
     industry: form.industry || undefined,
     period: form.period || 'latest',
     sort: form.sort,
     dir: form.dir,
-    page: form.page,
-    page_size: 50,
+    page: page ?? form.page,
+    page_size: size ?? 50,
   }
 
   if (form.preset) q.preset = form.preset
 
   const roeMin = pctInputToRatio(form.roe_min)
+  const roaMin = pctInputToRatio(form.roa_min)
   const gmMin = pctInputToRatio(form.gross_margin_min)
+  const opMin = pctInputToRatio(form.op_margin_min)
+  const netMin = pctInputToRatio(form.net_margin_min)
   const debtMax = pctInputToRatio(form.debt_ratio_max)
   if (roeMin != null) q.roe_min = roeMin
+  if (roaMin != null) q.roa_min = roaMin
   if (gmMin != null) q.gross_margin_min = gmMin
+  if (opMin != null) q.op_margin_min = opMin
+  if (netMin != null) q.net_margin_min = netMin
   if (debtMax != null) q.debt_ratio_max = debtMax
   if (form.current_ratio_min !== '') q.current_ratio_min = Number(form.current_ratio_min)
+  if (form.quick_ratio_min !== '') q.quick_ratio_min = Number(form.quick_ratio_min)
+  if (form.revenue_min !== '') q.revenue_min = Number(form.revenue_min)
   if (form.pe_max !== '') q.pe_max = Number(form.pe_max)
   if (form.pb_max !== '') q.pb_max = Number(form.pb_max)
   if (form.dy_min !== '') q.dy_min = Number(form.dy_min)
+  if (form.roe_min_streak) q.roe_min_streak = 2
 
   return q
+}
+
+function clearManualThresholds() {
+  form.roe_min = ''
+  form.roa_min = ''
+  form.gross_margin_min = ''
+  form.op_margin_min = ''
+  form.net_margin_min = ''
+  form.debt_ratio_max = ''
+  form.current_ratio_min = ''
+  form.quick_ratio_min = ''
+  form.revenue_min = ''
+  form.pe_max = ''
+  form.pb_max = ''
+  form.dy_min = ''
+  form.roe_min_streak = false
+}
+
+function fillFormFromFilters(filters = {}) {
+  clearManualThresholds()
+  if (filters.roe_min != null) form.roe_min = ratioToPctInput(filters.roe_min)
+  if (filters.roa_min != null) form.roa_min = ratioToPctInput(filters.roa_min)
+  if (filters.gross_margin_min != null) form.gross_margin_min = ratioToPctInput(filters.gross_margin_min)
+  if (filters.op_margin_min != null) form.op_margin_min = ratioToPctInput(filters.op_margin_min)
+  if (filters.net_margin_min != null) form.net_margin_min = ratioToPctInput(filters.net_margin_min)
+  if (filters.debt_ratio_max != null) form.debt_ratio_max = ratioToPctInput(filters.debt_ratio_max)
+  if (filters.current_ratio_min != null) form.current_ratio_min = String(filters.current_ratio_min)
+  if (filters.quick_ratio_min != null) form.quick_ratio_min = String(filters.quick_ratio_min)
+  if (filters.revenue_min != null) form.revenue_min = String(filters.revenue_min)
+  if (filters.pe_max != null) form.pe_max = String(filters.pe_max)
+  if (filters.pb_max != null) form.pb_max = String(filters.pb_max)
+  if (filters.dy_min != null) form.dy_min = String(filters.dy_min)
+  form.roe_min_streak = Number(filters.roe_min_streak || 0) >= 2
 }
 
 async function loadMeta() {
@@ -98,6 +166,76 @@ async function loadMeta() {
     meta.value = await api.screenerMeta()
   } catch {
     meta.value = null
+  }
+}
+
+function writeUrlState() {
+  if (syncingUrl.value) return
+  try {
+    const params = new URLSearchParams()
+    params.set('view', 'screener')
+    if (form.preset) params.set('preset', form.preset)
+    if (form.market && form.market !== 'both') params.set('market', form.market)
+    if (form.industry) params.set('industry', form.industry)
+    if (form.period && form.period !== 'latest') params.set('period', form.period)
+    if (form.roe_min !== '') params.set('roe_min', form.roe_min)
+    if (form.roa_min !== '') params.set('roa_min', form.roa_min)
+    if (form.gross_margin_min !== '') params.set('gross_margin_min', form.gross_margin_min)
+    if (form.op_margin_min !== '') params.set('op_margin_min', form.op_margin_min)
+    if (form.net_margin_min !== '') params.set('net_margin_min', form.net_margin_min)
+    if (form.debt_ratio_max !== '') params.set('debt_ratio_max', form.debt_ratio_max)
+    if (form.current_ratio_min !== '') params.set('current_ratio_min', form.current_ratio_min)
+    if (form.quick_ratio_min !== '') params.set('quick_ratio_min', form.quick_ratio_min)
+    if (form.revenue_min !== '') params.set('revenue_min', form.revenue_min)
+    if (form.pe_max !== '') params.set('pe_max', form.pe_max)
+    if (form.pb_max !== '') params.set('pb_max', form.pb_max)
+    if (form.dy_min !== '') params.set('dy_min', form.dy_min)
+    if (form.roe_min_streak) params.set('roe_min_streak', '2')
+    if (form.sort && form.sort !== 'roe') params.set('sort', form.sort)
+    if (form.dir && form.dir !== 'desc') params.set('dir', form.dir)
+    if (form.page > 1) params.set('page', String(form.page))
+    if (resultKeyword.value.trim()) params.set('kq', resultKeyword.value.trim())
+    const qs = params.toString()
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash || ''}`
+    window.history.replaceState(null, '', next)
+  } catch {
+    /* ignore */
+  }
+}
+
+function readUrlState() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if ((params.get('view') || '') !== 'screener' && !params.get('preset') && !params.get('roe_min')) {
+      return false
+    }
+    syncingUrl.value = true
+    if (params.has('preset')) form.preset = params.get('preset') || ''
+    if (params.has('market')) form.market = params.get('market') || 'both'
+    if (params.has('industry')) form.industry = params.get('industry') || ''
+    if (params.has('period')) form.period = params.get('period') || 'latest'
+    if (params.has('roe_min')) form.roe_min = params.get('roe_min') || ''
+    if (params.has('roa_min')) form.roa_min = params.get('roa_min') || ''
+    if (params.has('gross_margin_min')) form.gross_margin_min = params.get('gross_margin_min') || ''
+    if (params.has('op_margin_min')) form.op_margin_min = params.get('op_margin_min') || ''
+    if (params.has('net_margin_min')) form.net_margin_min = params.get('net_margin_min') || ''
+    if (params.has('debt_ratio_max')) form.debt_ratio_max = params.get('debt_ratio_max') || ''
+    if (params.has('current_ratio_min')) form.current_ratio_min = params.get('current_ratio_min') || ''
+    if (params.has('quick_ratio_min')) form.quick_ratio_min = params.get('quick_ratio_min') || ''
+    if (params.has('revenue_min')) form.revenue_min = params.get('revenue_min') || ''
+    if (params.has('pe_max')) form.pe_max = params.get('pe_max') || ''
+    if (params.has('pb_max')) form.pb_max = params.get('pb_max') || ''
+    if (params.has('dy_min')) form.dy_min = params.get('dy_min') || ''
+    form.roe_min_streak = params.get('roe_min_streak') === '2' || params.get('roe_min_streak') === '1'
+    if (params.has('sort')) form.sort = params.get('sort') || 'roe'
+    if (params.has('dir')) form.dir = params.get('dir') || 'desc'
+    if (params.has('page')) form.page = Math.max(1, Number(params.get('page')) || 1)
+    if (params.has('kq')) resultKeyword.value = params.get('kq') || ''
+    syncingUrl.value = false
+    return true
+  } catch {
+    syncingUrl.value = false
+    return false
   }
 }
 
@@ -110,6 +248,7 @@ async function runScreen() {
   error.value = ''
   try {
     result.value = await api.screener(buildQuery())
+    writeUrlState()
   } catch (e) {
     error.value = e?.message || '選股失敗'
     result.value = null
@@ -123,17 +262,14 @@ function startGoogleLogin() {
 }
 
 function applyPreset(id) {
-  form.preset = form.preset === id ? '' : id
+  const next = form.preset === id ? '' : id
+  form.preset = next
   form.page = 1
-  // 套用策略時清空手動覆寫，避免混淆；仍可用下方欄位再加嚴
-  if (form.preset) {
-    form.roe_min = ''
-    form.gross_margin_min = ''
-    form.debt_ratio_max = ''
-    form.current_ratio_min = ''
-    form.pe_max = ''
-    form.pb_max = ''
-    form.dy_min = ''
+  if (next) {
+    const p = presets.value.find((x) => x.id === next)
+    fillFormFromFilters(p?.filters || {})
+  } else {
+    clearManualThresholds()
   }
   runScreen()
 }
@@ -148,16 +284,11 @@ function clearFilters() {
   form.market = 'both'
   form.industry = ''
   form.period = 'latest'
-  form.roe_min = ''
-  form.gross_margin_min = ''
-  form.debt_ratio_max = ''
-  form.current_ratio_min = ''
-  form.pe_max = ''
-  form.pb_max = ''
-  form.dy_min = ''
+  clearManualThresholds()
   form.sort = 'roe'
   form.dir = 'desc'
   form.page = 1
+  resultKeyword.value = ''
   runScreen()
 }
 
@@ -166,7 +297,7 @@ function toggleSort(key) {
     form.dir = form.dir === 'desc' ? 'asc' : 'desc'
   } else {
     form.sort = key
-    form.dir = key === 'debt_ratio' || key === 'pe' || key === 'pb' ? 'asc' : 'desc'
+    form.dir = ['debt_ratio', 'pe', 'pb'].includes(key) ? 'asc' : 'desc'
   }
   form.page = 1
   runScreen()
@@ -194,12 +325,86 @@ function marketLabel(m) {
   return m || '—'
 }
 
+function csvEscape(v) {
+  const s = v == null ? '' : String(v)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function rowToCsvLine(row) {
+  const cells = [
+    row.code,
+    row.name,
+    marketLabel(row.market),
+    row.industry,
+    row.roe,
+    row.roa,
+    row.gross_margin,
+    row.op_margin,
+    row.net_margin,
+    row.debt_ratio,
+    row.current_ratio,
+    row.quick_ratio,
+    row.revenue,
+    row.pe,
+    row.pb,
+    row.dy,
+  ]
+  return cells.map(csvEscape).join(',')
+}
+
+async function exportCsv() {
+  if (!allowed.value || exporting.value) return
+  exporting.value = true
+  error.value = ''
+  try {
+    const header = [
+      '代號', '名稱', '市場', '產業', 'ROE', 'ROA', '毛利率', '營業利益率', '淨利率',
+      '負債比', '流動比', '速動比', '營收', '本益比', '股價淨值比', '殖利率',
+    ].join(',')
+    const lines = [header]
+    const maxRows = 2000
+    const size = 100
+    let page = 1
+    let fetched = 0
+    let totalCount = Infinity
+    while (fetched < totalCount && fetched < maxRows) {
+      const data = await api.screener(buildQuery({ page, pageSize: size }))
+      totalCount = Number(data.total) || 0
+      const rows = data.items || []
+      if (!rows.length) break
+      for (const row of rows) {
+        lines.push(rowToCsvLine(row))
+        fetched += 1
+        if (fetched >= maxRows) break
+      }
+      if (rows.length < size) break
+      page += 1
+    }
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `財務選股_${result.value?.period || 'latest'}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    error.value = e?.message || '匯出失敗'
+  } finally {
+    exporting.value = false
+  }
+}
+
 watch(
   () => form.market,
   () => {
     form.page = 1
   },
 )
+
+watch(resultKeyword, () => {
+  writeUrlState()
+})
 
 watch(allowed, async (ok) => {
   if (!ok) {
@@ -212,8 +417,13 @@ watch(allowed, async (ok) => {
 })
 
 onMounted(async () => {
+  readUrlState()
   if (!allowed.value) return
   await loadMeta()
+  if (form.preset && !form.roe_min && !form.debt_ratio_max && !form.roe_min_streak) {
+    const p = presets.value.find((x) => x.id === form.preset)
+    if (p?.filters) fillFormFromFilters(p.filters)
+  }
   await runScreen()
 })
 </script>
@@ -227,7 +437,7 @@ onMounted(async () => {
           <span class="home-link__short">主站</span>
         </a>
         <span class="nav-sep" aria-hidden="true">·</span>
-        <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
+        <button class="nav-back" type="button" @click="$emit('goto-engine')">← 財報工作台</button>
       </div>
       <div class="brand-line">
         <img
@@ -330,8 +540,20 @@ onMounted(async () => {
         <input v-model="form.roe_min" type="number" step="0.1" placeholder="例 15" />
       </label>
       <label>
+        <span>ROA ≥ %</span>
+        <input v-model="form.roa_min" type="number" step="0.1" placeholder="例 8" />
+      </label>
+      <label>
         <span>毛利率 ≥ %</span>
         <input v-model="form.gross_margin_min" type="number" step="0.1" placeholder="例 30" />
+      </label>
+      <label>
+        <span>營業利益率 ≥ %</span>
+        <input v-model="form.op_margin_min" type="number" step="0.1" placeholder="例 10" />
+      </label>
+      <label>
+        <span>淨利率 ≥ %</span>
+        <input v-model="form.net_margin_min" type="number" step="0.1" placeholder="例 8" />
       </label>
       <label>
         <span>負債比 ≤ %</span>
@@ -340,6 +562,14 @@ onMounted(async () => {
       <label>
         <span>流動比 ≥</span>
         <input v-model="form.current_ratio_min" type="number" step="0.1" placeholder="例 1.2" />
+      </label>
+      <label>
+        <span>速動比 ≥</span>
+        <input v-model="form.quick_ratio_min" type="number" step="0.1" placeholder="例 1" />
+      </label>
+      <label>
+        <span>營收 ≥（報表單位）</span>
+        <input v-model="form.revenue_min" type="number" step="1" placeholder="例 1000000" />
       </label>
       <label>
         <span>本益比 ≤</span>
@@ -353,6 +583,13 @@ onMounted(async () => {
         <span>殖利率 ≥ %</span>
         <input v-model="form.dy_min" type="number" step="0.1" placeholder="例 3" />
       </label>
+      <label class="check-label">
+        <span>連續兩季 ROE</span>
+        <span class="check-row">
+          <input v-model="form.roe_min_streak" type="checkbox" />
+          <span class="check-hint">當季＋上一季皆達 ROE 門檻</span>
+        </span>
+      </label>
       <div class="filter-actions">
         <button class="cta" type="submit" :disabled="loading">套用條件</button>
         <button class="ghost" type="button" :disabled="loading" @click="clearFilters">清除</button>
@@ -363,12 +600,34 @@ onMounted(async () => {
 
     <div class="result-bar muted">
       <span v-if="loading">篩選中…</span>
-      <span v-else>符合 {{ total.toLocaleString('zh-TW') }} 檔</span>
-      <span class="page-ctrl">
-        <button type="button" class="page-btn" :disabled="form.page <= 1 || loading" @click="goPage(-1)">上一頁</button>
-        <span>{{ form.page }} / {{ totalPages }}</span>
-        <button type="button" class="page-btn" :disabled="form.page >= totalPages || loading" @click="goPage(1)">下一頁</button>
+      <span v-else>
+        符合 {{ total.toLocaleString('zh-TW') }} 檔
+        <template v-if="resultKeyword.trim()">
+          · 本頁顯示 {{ filteredItems.length.toLocaleString('zh-TW') }} 檔
+        </template>
       </span>
+      <div class="result-tools">
+        <input
+          v-model="resultKeyword"
+          class="result-search"
+          type="search"
+          placeholder="本頁篩選代號／名稱"
+          enterkeyhint="search"
+        />
+        <button
+          type="button"
+          class="ghost export-btn"
+          :disabled="loading || exporting || !total"
+          @click="exportCsv"
+        >
+          {{ exporting ? '匯出中…' : '匯出 CSV' }}
+        </button>
+        <span class="page-ctrl">
+          <button type="button" class="page-btn" :disabled="form.page <= 1 || loading" @click="goPage(-1)">上一頁</button>
+          <span>{{ form.page }} / {{ totalPages }}</span>
+          <button type="button" class="page-btn" :disabled="form.page >= totalPages || loading" @click="goPage(1)">下一頁</button>
+        </span>
+      </div>
     </div>
 
     <div class="table-shell">
@@ -379,20 +638,24 @@ onMounted(async () => {
             <th>市場</th>
             <th>產業</th>
             <th class="num sortable" @click="toggleSort('roe')">ROE{{ sortMark('roe') }}</th>
+            <th class="num sortable" @click="toggleSort('roa')">ROA{{ sortMark('roa') }}</th>
             <th class="num sortable" @click="toggleSort('gross_margin')">毛利率{{ sortMark('gross_margin') }}</th>
+            <th class="num sortable" @click="toggleSort('op_margin')">營業利益率{{ sortMark('op_margin') }}</th>
+            <th class="num sortable" @click="toggleSort('net_margin')">淨利率{{ sortMark('net_margin') }}</th>
             <th class="num sortable" @click="toggleSort('debt_ratio')">負債比{{ sortMark('debt_ratio') }}</th>
             <th class="num sortable" @click="toggleSort('current_ratio')">流動比{{ sortMark('current_ratio') }}</th>
             <th class="num sortable" @click="toggleSort('revenue')">營收{{ sortMark('revenue') }}</th>
             <th class="num sortable" @click="toggleSort('pe')">本益比{{ sortMark('pe') }}</th>
+            <th class="num sortable" @click="toggleSort('pb')">淨值比{{ sortMark('pb') }}</th>
             <th class="num sortable" @click="toggleSort('dy')">殖利率{{ sortMark('dy') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!loading && !items.length">
-            <td colspan="10" class="empty muted">沒有符合條件的股票，請放寬條件後再試</td>
+          <tr v-if="!loading && !filteredItems.length">
+            <td colspan="14" class="empty muted">沒有符合條件的股票，請放寬條件後再試</td>
           </tr>
           <tr
-            v-for="row in items"
+            v-for="row in filteredItems"
             :key="row.code"
             class="row"
             @click="openStock(row)"
@@ -404,11 +667,15 @@ onMounted(async () => {
             <td>{{ marketLabel(row.market) }}</td>
             <td>{{ row.industry || '—' }}</td>
             <td class="num mono">{{ formatRatio('roe', row.roe) }}</td>
+            <td class="num mono">{{ formatRatio('roa', row.roa) }}</td>
             <td class="num mono">{{ formatRatio('gross_margin', row.gross_margin) }}</td>
+            <td class="num mono">{{ formatRatio('op_margin', row.op_margin) }}</td>
+            <td class="num mono">{{ formatRatio('net_margin', row.net_margin) }}</td>
             <td class="num mono">{{ formatRatio('debt_ratio', row.debt_ratio) }}</td>
             <td class="num mono">{{ formatRatio('current_ratio', row.current_ratio) }}</td>
             <td class="num mono">{{ formatMoney(row.revenue) }}</td>
             <td class="num mono">{{ row.pe != null ? row.pe.toFixed(1) : '—' }}</td>
+            <td class="num mono">{{ row.pb != null ? row.pb.toFixed(2) : '—' }}</td>
             <td class="num mono">{{ row.dy != null ? `${row.dy.toFixed(1)}%` : '—' }}</td>
           </tr>
         </tbody>
@@ -424,7 +691,7 @@ onMounted(async () => {
   min-height: 100dvh;
   padding: clamp(0.85rem, 2.5vw, 1.75rem);
   padding-bottom: calc(clamp(0.85rem, 2.5vw, 1.75rem) + env(safe-area-inset-bottom));
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
   min-width: 0;
 }
@@ -564,7 +831,7 @@ a.pro-gate__link {
 
 .presets {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.65rem;
   margin: 1.25rem 0 1rem;
 }
@@ -620,6 +887,20 @@ a.pro-gate__link {
   font-size: 0.88rem;
 }
 
+.check-label .check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.2rem;
+  color: var(--paper);
+  font-size: 0.82rem;
+}
+
+.check-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 .filter-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -631,8 +912,31 @@ a.pro-gate__link {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   font-size: 0.82rem;
   margin-bottom: 0.5rem;
+}
+
+.result-tools {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.result-search {
+  width: min(12rem, 42vw);
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  background: rgba(8, 10, 14, 0.85);
+  color: var(--paper);
+  font-size: 0.82rem;
+}
+
+.export-btn {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
 }
 
 .page-ctrl {
@@ -657,7 +961,7 @@ a.pro-gate__link {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 960px;
+  min-width: 1180px;
 }
 
 th, td {
@@ -819,6 +1123,11 @@ thead .sticky {
   .result-bar {
     flex-wrap: wrap;
     gap: 0.55rem;
+  }
+
+  .result-search {
+    width: 100%;
+    min-height: 40px;
   }
 
   .page-btn {
