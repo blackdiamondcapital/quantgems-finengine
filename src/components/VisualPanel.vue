@@ -8,6 +8,35 @@ const props = defineProps({
   payload: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   incomeBasis: { type: String, default: 'single' },
+  symbol: { type: Object, default: null },
+})
+
+const stockCode = computed(() =>
+  String(props.symbol?.code || props.payload?.symbol?.code || '').trim(),
+)
+
+const stockName = computed(() => {
+  const code = stockCode.value
+  const rawName = String(
+    props.symbol?.label
+      || props.symbol?.name
+      || props.symbol?.short_name
+      || props.payload?.symbol?.label
+      || props.payload?.symbol?.name
+      || '',
+  ).trim()
+  if (!rawName) return ''
+  if (!code) return rawName
+  const re = new RegExp(`^${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i')
+  const name = rawName.replace(re, '').trim()
+  return name && name !== code ? name : ''
+})
+
+const stockTitle = computed(() => {
+  const code = stockCode.value
+  const name = stockName.value
+  if (code && name) return `${code} ${name}`
+  return code || name || ''
 })
 
 const COLORS = ['#2dd4bf', '#d4a574', '#e8e4dc', '#e07a6a', '#7aa2ff', '#c4b5fd', '#fbbf24', '#67e8f9']
@@ -187,6 +216,7 @@ function render() {
 
   const labels = periods.value.map((p) => p.label || p.value)
   const mode = chartMode.value
+  const stock = stockTitle.value
   const series = chartSeries.value.map((s, idx) => {
     const color = COLORS[idx % COLORS.length]
     return {
@@ -205,9 +235,22 @@ function render() {
     {
       backgroundColor: 'transparent',
       animationDuration: 550,
-      grid: { left: 56, right: 28, top: 44, bottom: 36 },
+      title: stock
+        ? {
+            text: stock,
+            left: 0,
+            top: 0,
+            textStyle: {
+              color: '#e8e4dc',
+              fontFamily: 'Noto Sans TC, sans-serif',
+              fontSize: 14,
+              fontWeight: 700,
+            },
+          }
+        : undefined,
+      grid: { left: 56, right: 28, top: stock ? 68 : 44, bottom: 36 },
       legend: {
-        top: 0,
+        top: stock ? 26 : 0,
         type: 'scroll',
         textStyle: { color: '#8b929e', fontFamily: 'Noto Sans TC', fontSize: 11 },
         itemWidth: 12,
@@ -221,13 +264,14 @@ function render() {
         formatter: (params) => {
           const rows = Array.isArray(params) ? params : [params]
           const head = rows[0]?.axisValueLabel || ''
+          const stockLine = stock ? `${stock}<br/>` : ''
           const body = rows
             .map((p) => {
               const field = selectedFields.value[p.seriesIndex]
               return `${p.marker}${p.seriesName}：${formatTooltipValue(field, p.value)}`
             })
             .join('<br/>')
-          return `${head}<br/>${body}`
+          return `${stockLine}${head}<br/>${body}`
         },
       },
       xAxis: {
@@ -282,7 +326,7 @@ watch(
 )
 
 watch(
-  [() => props.payload, selectedKeys, () => props.loading, () => props.incomeBasis],
+  [() => props.payload, () => props.symbol, selectedKeys, () => props.loading, () => props.incomeBasis],
   async () => {
     await nextTick()
     render()
@@ -358,7 +402,14 @@ onBeforeUnmount(() => {
     <div class="canvas-wrap">
       <div class="head">
         <div>
-          <h3 class="display">科目趨勢</h3>
+          <h3 class="display">
+            <template v-if="stockCode || stockName">
+              <span v-if="stockCode" class="stock-code mono">{{ stockCode }}</span>
+              <span v-if="stockName" class="stock-name">{{ stockName }}</span>
+              <span class="head-sep muted">·</span>
+            </template>
+            科目趨勢
+          </h3>
           <p class="muted sub">
             <span v-if="selectedFields.length">{{ selectedFields.map((f) => f.label).join('、') }}</span>
             <span v-else>請從左側勾選科目</span>
@@ -527,6 +578,25 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 1.05rem;
   letter-spacing: 0.06em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.45rem;
+}
+
+.stock-code {
+  color: var(--aqua, #2dd4bf);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.stock-name {
+  color: var(--paper, #e8e4dc);
+  font-weight: 600;
+}
+
+.head-sep {
+  font-weight: 400;
 }
 
 .sub {
