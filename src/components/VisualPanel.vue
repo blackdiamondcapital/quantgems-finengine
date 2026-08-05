@@ -299,6 +299,23 @@ function render() {
           },
         },
       },
+      graphic: [
+        {
+          type: 'text',
+          id: 'qg-finengine-watermark',
+          left: 'center',
+          top: 'middle',
+          z: 1,
+          silent: true,
+          style: {
+            text: 'QuantGems® 財報引擎',
+            fill: 'rgba(232, 228, 220, 0.16)',
+            font: '700 26px "Noto Sans TC", "PingFang TC", sans-serif',
+            textAlign: 'center',
+            textVerticalAlign: 'middle',
+          },
+        },
+      ],
       series,
     },
     true,
