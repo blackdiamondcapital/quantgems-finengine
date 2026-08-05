@@ -11,7 +11,7 @@ import { MAIN_SITE_URL } from '../lib/siteLinks'
 const props = defineProps({
   seedCode: { type: String, default: '2330' },
 })
-defineEmits(['back', 'goto-screener'])
+defineEmits(['goto-screener'])
 
 const code = ref(props.seedCode || '2330')
 const symbol = ref(null)
@@ -150,14 +150,6 @@ onMounted(async () => {
 <template>
   <section class="engine">
     <header class="bar">
-      <div class="bar-nav">
-        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
-          <span class="home-link__full">QuantGems® 主站</span>
-          <span class="home-link__short">主站</span>
-        </a>
-        <span class="nav-sep" aria-hidden="true">·</span>
-        <button class="nav-back" type="button" @click="$emit('back')">← 首頁</button>
-      </div>
       <div class="brand-line">
         <img
           class="brand-icon"
@@ -171,6 +163,12 @@ onMounted(async () => {
           <span class="brand-title__name">QuantGems®</span>
           <span class="brand-title__tag">財報引擎</span>
         </span>
+      </div>
+      <div class="bar-nav">
+        <a class="home-link" :href="MAIN_SITE_URL" target="_blank" rel="noopener noreferrer">
+          <span class="home-link__full">QuantGems® 主站</span>
+          <span class="home-link__short">主站</span>
+        </a>
       </div>
       <div class="spacer" />
       <div class="bar-actions">
@@ -323,6 +321,7 @@ onMounted(async () => {
   row-gap: 0.65rem;
   margin-bottom: 1.5rem;
   min-width: 0;
+  justify-content: flex-start;
 }
 
 .bar-nav {
@@ -330,12 +329,6 @@ onMounted(async () => {
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-}
-
-.nav-sep {
-  color: var(--muted);
-  opacity: 0.55;
-  font-size: 0.75rem;
 }
 
 .bar-actions {
@@ -351,6 +344,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .brand-icon {
@@ -628,6 +622,7 @@ h1 {
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--line);
+    justify-content: stretch;
   }
 
   .spacer { display: none; }

@@ -86,7 +86,6 @@ function openStock(code) {
     v-else
     :key="seedCode"
     :seed-code="seedCode"
-    @back="view = 'landing'"
     @goto-screener="view = 'screener'"
   />
 </template>
