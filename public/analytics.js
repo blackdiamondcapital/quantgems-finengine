@@ -1,5 +1,5 @@
-// Google Analytics (gtag) — same property as QuantGems main site
+// Google Analytics (gtag) — QuantGems 財報引擎專用 GA4 資源
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', 'G-KL2QT1HNW7');
+gtag('config', 'G-DLPDCKNT5N');
