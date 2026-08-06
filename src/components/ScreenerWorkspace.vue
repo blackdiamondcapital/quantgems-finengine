@@ -173,7 +173,6 @@ function writeUrlState() {
   if (syncingUrl.value) return
   try {
     const params = new URLSearchParams()
-    params.set('view', 'screener')
     if (form.preset) params.set('preset', form.preset)
     if (form.market && form.market !== 'both') params.set('market', form.market)
     if (form.industry) params.set('industry', form.industry)
@@ -206,7 +205,8 @@ function writeUrlState() {
 function readUrlState() {
   try {
     const params = new URLSearchParams(window.location.search)
-    if ((params.get('view') || '') !== 'screener' && !params.get('preset') && !params.get('roe_min')) {
+    const isScreenerPath = window.location.pathname.replace(/\/+$/, '') === '/financial-screener'
+    if (!isScreenerPath && (params.get('view') || '') !== 'screener' && !params.get('preset') && !params.get('roe_min')) {
       return false
     }
     syncingUrl.value = true

@@ -47,7 +47,15 @@
       "destination": "/api/index"
     },
     {
-      "source": "/((?!robots\\.txt|sitemap\\.xml|favicon\\.ico|favicon-.*\\.png|og-image\\.png|apple-touch-icon\\.png|pwa-icon.*|quantgems-finengine-icon\\.svg|quantgems-finengine-icon\\.png|analytics\\.js|manifest\\.webmanifest|sw\\.js|workbox-.*|registerSW\\.js|assets/).*)",
+      "source": "/financial-statements",
+      "destination": "/financial-statements.html"
+    },
+    {
+      "source": "/financial-screener",
+      "destination": "/financial-screener.html"
+    },
+    {
+      "source": "/((?!financial-statements(?:\\.html)?$|financial-screener(?:\\.html)?$|robots\\.txt|sitemap\\.xml|favicon\\.ico|favicon-.*\\.png|og-image\\.png|apple-touch-icon\\.png|pwa-icon.*|quantgems-finengine-icon\\.svg|quantgems-finengine-icon\\.png|analytics\\.js|manifest\\.webmanifest|sw\\.js|workbox-.*|registerSW\\.js|assets/).*)",
       "destination": "/index.html"
     }
   ]

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "cd server && python app.py",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-seo-pages.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

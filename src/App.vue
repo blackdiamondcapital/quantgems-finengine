@@ -1,11 +1,13 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from './api'
 import { useAuth } from './lib/auth'
+import { pagePath, resolveViewFromLocation, updatePageSeo } from './lib/seo'
 import LandingHero from './components/LandingHero.vue'
-import EngineWorkspace from './components/EngineWorkspace.vue'
-import ScreenerWorkspace from './components/ScreenerWorkspace.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
+
+const EngineWorkspace = defineAsyncComponent(() => import('./components/EngineWorkspace.vue'))
+const ScreenerWorkspace = defineAsyncComponent(() => import('./components/ScreenerWorkspace.vue'))
 
 const {
   isAuthenticated,
@@ -15,21 +17,30 @@ const {
   consumeOAuthCallbackFromUrl,
 } = useAuth()
 
-const view = ref('engine')
+const initialView = resolveViewFromLocation()
+if (typeof window !== 'undefined') {
+  const legacyParams = new URLSearchParams(window.location.search)
+  if (legacyParams.has('view')) {
+    legacyParams.delete('view')
+    const query = legacyParams.toString()
+    window.history.replaceState(null, '', `${pagePath(initialView)}${query ? `?${query}` : ''}`)
+  }
+}
+
+const view = ref(initialView)
 const stats = ref(null)
 const ready = ref(false)
 const seedCode = ref('2330')
 const authStatus = ref('')
 
+watch(view, updatePageSeo, { immediate: true })
+
+function handlePopState() {
+  view.value = resolveViewFromLocation()
+}
+
 onMounted(async () => {
-  try {
-    const params = new URLSearchParams(window.location.search)
-    if ((params.get('view') || '') === 'screener') {
-      view.value = 'screener'
-    }
-  } catch {
-    /* ignore */
-  }
+  window.addEventListener('popstate', handlePopState)
 
   const oauth = consumeOAuthCallbackFromUrl()
   if (oauth.error) {
@@ -51,18 +62,39 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', handlePopState)
+})
+
+function navigate(nextView, { replace = false } = {}) {
+  if (typeof window !== 'undefined') {
+    const method = replace ? 'replaceState' : 'pushState'
+    window.history[method](null, '', pagePath(nextView))
+  }
+  view.value = nextView
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function enter() {
   seedCode.value = '2330'
-  view.value = 'engine'
+  navigate('engine')
 }
 
 function openScreener() {
-  view.value = 'screener'
+  navigate('screener')
 }
 
 function openStock(code) {
   seedCode.value = code || '2330'
-  view.value = 'engine'
+  navigate('engine')
+}
+
+function openEngine() {
+  navigate('engine')
+}
+
+function openLanding() {
+  navigate('landing')
 }
 </script>
 
@@ -78,15 +110,16 @@ function openStock(code) {
   />
   <ScreenerWorkspace
     v-else-if="view === 'screener'"
-    @back="view = 'engine'"
-    @goto-engine="view = 'engine'"
+    @back="openEngine"
+    @goto-engine="openEngine"
     @open-stock="openStock"
   />
   <EngineWorkspace
     v-else
     :key="seedCode"
     :seed-code="seedCode"
-    @goto-screener="view = 'screener'"
+    @back="openLanding"
+    @goto-screener="openScreener"
   />
 </template>
 
