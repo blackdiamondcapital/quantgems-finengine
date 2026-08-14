@@ -57,7 +57,7 @@ const PRESET_DEFAULTS = {
     'Equity',
     'NetCashFlowsFromUsedInOperatingActivities',
   ],
-  ratios: ['gross_margin', 'op_margin', 'net_margin', 'roe', 'debt_ratio'],
+  ratios: ['gross_margin', 'roe', 'roic', 'free_cash_flow_margin', 'asset_turnover'],
 }
 
 const query = ref('')
@@ -128,7 +128,10 @@ function seriesValues(key) {
 const chartMode = computed(() => {
   const fields = selectedFields.value
   if (!fields.length) return 'money'
-  if (fields.every((f) => f.isRatio)) return 'ratio'
+  if (fields.every((f) => f.isRatio)) {
+    const units = new Set(fields.map((f) => f.unit || 'percent'))
+    return units.size === 1 ? [...units][0] : 'mixed-ratio'
+  }
   if (fields.every((f) => f.isEps)) return 'eps'
   return 'money'
 })
@@ -157,7 +160,9 @@ function axisMoney(v) {
 
 function formatTooltipValue(item, value) {
   if (value == null || Number.isNaN(Number(value))) return '—'
-  if (item?.isRatio || chartMode.value === 'ratio') return formatRatio(item?.key, value)
+  if (item?.isRatio || chartMode.value.includes('ratio')) {
+    return formatRatio(item?.key, value, item?.unit, { applicable: item?.applicable })
+  }
   if (item?.isEps || chartMode.value === 'eps') return formatMoney(value, { isEps: true })
   return formatMoney(value)
 }
@@ -288,12 +293,11 @@ function render() {
           fontFamily: 'JetBrains Mono',
           fontSize: 10,
           formatter: (v) => {
-            if (mode === 'ratio') {
-              const first = selectedFields.value[0]
-              if (first?.isMultiple) return Number(v).toFixed(2)
-              const pct = Math.abs(v) <= 5 ? v * 100 : v
-              return `${pct.toFixed(0)}%`
-            }
+            if (mode === 'percent') return `${(Number(v) * 100).toFixed(0)}%`
+            if (mode === 'multiple') return `${Number(v).toFixed(1)}倍`
+            if (mode === 'days') return `${Number(v).toFixed(0)}天`
+            if (mode === 'currency') return axisMoney(v)
+            if (mode === 'mixed-ratio') return String(Number(v).toFixed(2))
             if (mode === 'eps') return Number(v).toFixed(1)
             return axisMoney(v)
           },

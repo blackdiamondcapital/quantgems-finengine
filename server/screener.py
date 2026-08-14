@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from labels import LABELS_ZH
+from labels import LABELS_ZH, RATIO_KEYS, RATIO_UNITS
 
 PRESETS: dict[str, dict[str, Any]] = {
     "high_roe": {
@@ -42,30 +42,51 @@ PRESETS: dict[str, dict[str, Any]] = {
         "desc": "本益比 ≤ 15、股價淨值比 ≤ 2、殖利率 ≥ 3%",
         "filters": {"pe_max": 15, "pb_max": 2, "dy_min": 3},
     },
+    "cashflow_quality": {
+        "id": "cashflow_quality",
+        "label": "現金流品質",
+        "desc": "營業現金流／淨利 ≥ 1 倍，自由現金流率 ≥ 5%",
+        "filters": {
+            "operating_cash_to_net_income_min": 1,
+            "free_cash_flow_margin_min": 0.05,
+        },
+    },
+    "high_roic": {
+        "id": "high_roic",
+        "label": "高 ROIC",
+        "desc": "ROIC ≥ 12%，利息保障倍數 ≥ 5 倍",
+        "filters": {"roic_min": 0.12, "interest_coverage_min": 5},
+    },
+    "operating_efficiency": {
+        "id": "operating_efficiency",
+        "label": "營運效率",
+        "desc": "資產週轉率 ≥ 0.8 倍，現金轉換週期 ≤ 120 天",
+        "filters": {"asset_turnover_min": 0.8, "cash_conversion_cycle_max": 120},
+    },
+    "growth_quality": {
+        "id": "growth_quality",
+        "label": "成長品質",
+        "desc": "營收與 EPS 年增 ≥ 10%，自由現金流率 ≥ 5%",
+        "filters": {
+            "revenue_yoy_min": 0.1,
+            "eps_yoy_min": 0.1,
+            "free_cash_flow_margin_min": 0.05,
+        },
+    },
 }
 
+FILTERABLE_COLUMNS = [*RATIO_KEYS, "revenue", "net_profit"]
 FILTER_SPECS = [
-    ("roe_min", "roe", ">="),
-    ("roe_max", "roe", "<="),
-    ("roa_min", "roa", ">="),
-    ("gross_margin_min", "gross_margin", ">="),
-    ("op_margin_min", "op_margin", ">="),
-    ("net_margin_min", "net_margin", ">="),
-    ("debt_ratio_max", "debt_ratio", "<="),
-    ("current_ratio_min", "current_ratio", ">="),
-    ("quick_ratio_min", "quick_ratio", ">="),
-    ("revenue_min", "revenue", ">="),
+    spec
+    for column in FILTERABLE_COLUMNS
+    for spec in (
+        (f"{column}_min", column, ">="),
+        (f"{column}_max", column, "<="),
+    )
 ]
 
 SORTABLE = {
-    "roe",
-    "roa",
-    "gross_margin",
-    "op_margin",
-    "net_margin",
-    "debt_ratio",
-    "current_ratio",
-    "quick_ratio",
+    *RATIO_KEYS,
     "revenue",
     "net_profit",
     "pe",
@@ -73,6 +94,8 @@ SORTABLE = {
     "dy",
     "code",
 }
+
+RESULT_FIELDS = [*RATIO_KEYS, "revenue", "net_profit"]
 
 
 def _parse_float(raw: Optional[str]) -> Optional[float]:
@@ -180,10 +203,31 @@ def list_presets() -> list[dict]:
     ]
 
 
+def ratio_table_columns(conn, table: str) -> set[str]:
+    """讀取實際 schema，讓尚未 migration 的資料庫也能安全查詢。"""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = %s
+            """,
+            (table,),
+        )
+        return {r["column_name"] for r in cur.fetchall()}
+
+
+def schema_column_expr(column: str, available: set[str], alias: str = "r") -> str:
+    if column in available:
+        return f'{alias}."{column}"'
+    return "NULL::numeric"
+
+
 def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
     ratios_t = tables["ratios"]
     symbols_t = tables["symbols"]
     bwibbu_t = "tw_stock_bwibbu"
+    available = ratio_table_columns(conn, ratios_t)
 
     period = params["period"]
     with conn.cursor() as cur:
@@ -218,17 +262,23 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
         for key, col, op in FILTER_SPECS:
             if key not in params["filters"]:
                 continue
-            where.append(f"r.{col} IS NOT NULL AND r.{col} {op} %s")
+            if col not in available:
+                where.append("FALSE")
+                continue
+            where.append(f'r."{col}" IS NOT NULL AND r."{col}" {op} %s')
             binds.append(params["filters"][key])
 
         # 連續兩季（或以上）ROE：當季已由 roe_min 約束，再要求前一季達標
         streak = int(params["filters"].get("roe_min_streak") or 0)
         if streak >= 2:
+            if "roe" not in available:
+                where.append("FALSE")
+                streak = 0
             roe_floor = params["filters"].get("roe_min")
             if roe_floor is None:
                 roe_floor = 0.15
             prev = _prev_period(str(period))
-            if prev:
+            if prev and streak >= 2:
                 where.append(
                     f"""EXISTS (
                       SELECT 1 FROM {ratios_t} r_prev
@@ -278,23 +328,12 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
 
         where_sql = " AND ".join(where)
 
-        sort_map = {
-            "code": "code",
-            "roe": "roe",
-            "roa": "roa",
-            "gross_margin": "gross_margin",
-            "op_margin": "op_margin",
-            "net_margin": "net_margin",
-            "debt_ratio": "debt_ratio",
-            "current_ratio": "current_ratio",
-            "quick_ratio": "quick_ratio",
-            "revenue": "revenue",
-            "net_profit": "net_profit",
-            "pe": "pe",
-            "pb": "pb",
-            "dy": "dy",
-        }
-        sort_col = sort_map[sort]
+        if sort == "code":
+            sort_col = "code"
+        elif sort in ("pe", "pb", "dy"):
+            sort_col = sort
+        else:
+            sort_col = schema_column_expr(sort, available)
         sort_dir = "ASC" if params["dir"] == "asc" else "DESC"
         nulls = "NULLS LAST"
 
@@ -310,6 +349,10 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
         total = int(cur.fetchone()["n"] or 0)
 
         offset = (params["page"] - 1) * params["page_size"]
+        ratio_select = ",\n              ".join(
+            f'{schema_column_expr(field, available)} AS "{field}"'
+            for field in RESULT_FIELDS
+        )
         list_sql = f"""
             SELECT
               {code_expr_r} AS code,
@@ -318,9 +361,7 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
               s.market,
               s.industry,
               r.period,
-              r.roe, r.roa, r.gross_margin, r.op_margin, r.net_margin,
-              r.debt_ratio, r.current_ratio, r.quick_ratio,
-              r.revenue, r.net_profit,
+              {ratio_select},
               {select_bwibbu}
             FROM {ratios_t} r
             LEFT JOIN {symbols_t} s
@@ -342,20 +383,11 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
             "market": r.get("market"),
             "industry": r.get("industry"),
             "period": r.get("period"),
-            "roe": _num(r.get("roe")),
-            "roa": _num(r.get("roa")),
-            "gross_margin": _num(r.get("gross_margin")),
-            "op_margin": _num(r.get("op_margin")),
-            "net_margin": _num(r.get("net_margin")),
-            "debt_ratio": _num(r.get("debt_ratio")),
-            "current_ratio": _num(r.get("current_ratio")),
-            "quick_ratio": _num(r.get("quick_ratio")),
-            "revenue": _num(r.get("revenue")),
-            "net_profit": _num(r.get("net_profit")),
             "pe": _num(r.get("pe")),
             "pb": _num(r.get("pb")),
             "dy": _num(r.get("dy")),
         }
+        item.update({field: _num(r.get(field)) for field in RESULT_FIELDS})
         items.append(item)
 
     return {
@@ -372,6 +404,10 @@ def run_screener(conn, tables: dict[str, str], params: dict[str, Any]) -> dict:
         "industry": params["industry"],
         "items": items,
         "presets": list_presets(),
+        "fieldMeta": {
+            key: {"label": LABELS_ZH.get(key, key), "unit": RATIO_UNITS.get(key)}
+            for key in RATIO_KEYS
+        },
     }
 
 

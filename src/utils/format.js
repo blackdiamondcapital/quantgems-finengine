@@ -18,9 +18,7 @@ export function formatMoney(value, { isEps = false } = {}) {
 export function formatPct(value, digits = 1) {
   if (value == null || Number.isNaN(Number(value))) return '—'
   const n = Number(value)
-  // ratios stored as 0.xx
-  const pct = Math.abs(n) <= 5 ? n * 100 : n
-  return `${pct.toFixed(digits)}%`
+  return `${(n * 100).toFixed(digits)}%`
 }
 
 const MULTIPLE_RATIO_KEYS = new Set([
@@ -29,15 +27,53 @@ const MULTIPLE_RATIO_KEYS = new Set([
   'cash_ratio',
   'cash_cl_ratio',
   'debt_to_equity',
+  'operating_cash_to_net_income',
+  'interest_coverage',
+  'asset_turnover',
+  'inventory_turnover',
+  'receivable_turnover',
+  'payable_turnover',
+  'dupont_asset_turnover',
+  'dupont_equity_multiplier',
 ])
 
-export function formatRatio(key, value) {
-  if (value == null || Number.isNaN(Number(value))) return '—'
+const DAY_RATIO_KEYS = new Set([
+  'inventory_days',
+  'receivable_days',
+  'payable_days',
+  'cash_conversion_cycle',
+])
+
+const CURRENCY_RATIO_KEYS = new Set([
+  'operating_cash_flow',
+  'free_cash_flow',
+  'book_value_per_share',
+  'free_cash_flow_per_share',
+])
+
+export function ratioUnit(key) {
+  if (MULTIPLE_RATIO_KEYS.has(key)) return 'multiple'
+  if (DAY_RATIO_KEYS.has(key)) return 'days'
+  if (CURRENCY_RATIO_KEYS.has(key)) return 'currency'
+  return 'percent'
+}
+
+export function formatByUnit(value, unit, { key = '', applicable = true } = {}) {
+  if (value == null || Number.isNaN(Number(value))) {
+    return applicable === false ? '不適用' : '—'
+  }
   const n = Number(value)
-  if (MULTIPLE_RATIO_KEYS.has(key)) {
-    return n.toFixed(2)
+  if (unit === 'multiple') return `${n.toFixed(2)} 倍`
+  if (unit === 'days') return `${n.toFixed(1)} 天`
+  if (unit === 'currency') {
+    const isPerShare = key === 'book_value_per_share' || key === 'free_cash_flow_per_share'
+    return `${formatMoney(n, { isEps: isPerShare })} 元`
   }
   return formatPct(n)
+}
+
+export function formatRatio(key, value, unit = ratioUnit(key), options = {}) {
+  return formatByUnit(value, unit, { key, ...options })
 }
 
 export function changeClass(curr, prev) {

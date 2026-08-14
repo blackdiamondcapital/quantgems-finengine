@@ -35,6 +35,79 @@ const result = ref(null)
 const resultKeyword = ref('')
 const syncingUrl = ref(false)
 
+const ADVANCED_FILTER_GROUPS = [
+  {
+    id: 'cashflow',
+    title: '現金流品質',
+    fields: [
+      { key: 'operating_cash_to_net_income_min', label: '營業現金流／淨利 ≥', unit: 'multiple', placeholder: '例 1' },
+      { key: 'free_cash_flow_margin_min', label: '自由現金流率 ≥ %', unit: 'percent', placeholder: '例 5' },
+      { key: 'roic_min', label: 'ROIC ≥ %', unit: 'percent', placeholder: '例 12' },
+      { key: 'interest_coverage_min', label: '利息保障倍數 ≥', unit: 'multiple', placeholder: '例 5' },
+    ],
+  },
+  {
+    id: 'efficiency',
+    title: '營運效率',
+    fields: [
+      { key: 'asset_turnover_min', label: '資產週轉率 ≥', unit: 'multiple', placeholder: '例 0.8' },
+      { key: 'inventory_turnover_min', label: '存貨週轉率 ≥', unit: 'multiple', placeholder: '例 4' },
+      { key: 'receivable_turnover_min', label: '應收週轉率 ≥', unit: 'multiple', placeholder: '例 6' },
+      { key: 'cash_conversion_cycle_max', label: '現金轉換週期 ≤ 天', unit: 'days', placeholder: '例 120' },
+    ],
+  },
+  {
+    id: 'growth',
+    title: '成長性',
+    fields: [
+      { key: 'revenue_yoy_min', label: '營收年增率 ≥ %', unit: 'percent', placeholder: '例 10' },
+      { key: 'op_profit_yoy_min', label: '營業利益年增率 ≥ %', unit: 'percent', placeholder: '例 10' },
+      { key: 'eps_yoy_min', label: 'EPS 年增率 ≥ %', unit: 'percent', placeholder: '例 10' },
+      { key: 'revenue_cagr_3y_min', label: '營收 CAGR 3Y ≥ %', unit: 'percent', placeholder: '例 8' },
+      { key: 'eps_cagr_3y_min', label: 'EPS CAGR 3Y ≥ %', unit: 'percent', placeholder: '例 8' },
+    ],
+  },
+  {
+    id: 'per-share-dupont',
+    title: '每股指標／杜邦分析',
+    fields: [
+      { key: 'book_value_per_share_min', label: '每股淨值 ≥ 元', unit: 'currency', placeholder: '例 20' },
+      { key: 'free_cash_flow_per_share_min', label: '每股自由現金流 ≥ 元', unit: 'currency', placeholder: '例 2' },
+      { key: 'dupont_net_margin_min', label: '杜邦淨利率 ≥ %', unit: 'percent', placeholder: '例 10' },
+      { key: 'dupont_equity_multiplier_max', label: '杜邦權益乘數 ≤', unit: 'multiple', placeholder: '例 3' },
+    ],
+  },
+]
+
+const ADVANCED_FILTER_FIELDS = ADVANCED_FILTER_GROUPS.flatMap((group) => group.fields)
+const ADVANCED_FILTER_KEYS = ADVANCED_FILTER_FIELDS.map((field) => field.key)
+const ADVANCED_RESULT_COLUMNS = [
+  ['operating_cash_flow', '營業現金流', 'currency'],
+  ['free_cash_flow', '自由現金流', 'currency'],
+  ['operating_cash_to_net_income', '現金流／淨利', 'multiple'],
+  ['free_cash_flow_margin', '自由現金流率', 'percent'],
+  ['roic', 'ROIC', 'percent'],
+  ['interest_coverage', '利息保障倍數', 'multiple'],
+  ['asset_turnover', '資產週轉率', 'multiple'],
+  ['inventory_turnover', '存貨週轉率', 'multiple'],
+  ['receivable_turnover', '應收週轉率', 'multiple'],
+  ['payable_turnover', '應付週轉率', 'multiple'],
+  ['inventory_days', '存貨天數', 'days'],
+  ['receivable_days', '應收天數', 'days'],
+  ['payable_days', '應付天數', 'days'],
+  ['cash_conversion_cycle', '現金轉換週期', 'days'],
+  ['revenue_yoy', '營收年增率', 'percent'],
+  ['op_profit_yoy', '營業利益年增率', 'percent'],
+  ['eps_yoy', 'EPS 年增率', 'percent'],
+  ['revenue_cagr_3y', '營收 CAGR 3Y', 'percent'],
+  ['eps_cagr_3y', 'EPS CAGR 3Y', 'percent'],
+  ['book_value_per_share', '每股淨值', 'currency'],
+  ['free_cash_flow_per_share', '每股自由現金流', 'currency'],
+  ['dupont_net_margin', '杜邦淨利率', 'percent'],
+  ['dupont_asset_turnover', '杜邦資產週轉率', 'multiple'],
+  ['dupont_equity_multiplier', '杜邦權益乘數', 'multiple'],
+].map(([key, label, unit]) => ({ key, label, unit }))
+
 const form = reactive({
   preset: 'high_roe',
   market: 'both',
@@ -56,6 +129,7 @@ const form = reactive({
   sort: 'roe',
   dir: 'desc',
   page: 1,
+  ...Object.fromEntries(ADVANCED_FILTER_KEYS.map((key) => [key, ''])),
 })
 
 const presets = computed(() => meta.value?.presets || result.value?.presets || [])
@@ -65,6 +139,7 @@ const items = computed(() => result.value?.items || [])
 const total = computed(() => result.value?.total || 0)
 const pageSize = computed(() => result.value?.pageSize || 50)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const resultColumnCount = 14 + ADVANCED_RESULT_COLUMNS.length
 
 const filteredItems = computed(() => {
   const q = resultKeyword.value.trim().toLowerCase()
@@ -80,15 +155,14 @@ function pctInputToRatio(v) {
   if (v === '' || v == null) return undefined
   const n = Number(v)
   if (Number.isNaN(n)) return undefined
-  return n > 1 || n < -1 ? n / 100 : n
+  return n / 100
 }
 
 function ratioToPctInput(v) {
   if (v == null || v === '') return ''
   const n = Number(v)
   if (Number.isNaN(n)) return ''
-  const pct = Math.abs(n) <= 5 ? n * 100 : n
-  return String(Number(pct.toFixed(4)))
+  return String(Number((n * 100).toFixed(4)))
 }
 
 function buildQuery({ page, pageSize: size } = {}) {
@@ -123,6 +197,13 @@ function buildQuery({ page, pageSize: size } = {}) {
   if (form.pb_max !== '') q.pb_max = Number(form.pb_max)
   if (form.dy_min !== '') q.dy_min = Number(form.dy_min)
   if (form.roe_min_streak) q.roe_min_streak = 2
+  for (const field of ADVANCED_FILTER_FIELDS) {
+    if (form[field.key] === '') continue
+    const value = field.unit === 'percent'
+      ? pctInputToRatio(form[field.key])
+      : Number(form[field.key])
+    if (value != null && !Number.isNaN(value)) q[field.key] = value
+  }
 
   return q
 }
@@ -141,6 +222,7 @@ function clearManualThresholds() {
   form.pb_max = ''
   form.dy_min = ''
   form.roe_min_streak = false
+  for (const key of ADVANCED_FILTER_KEYS) form[key] = ''
 }
 
 function fillFormFromFilters(filters = {}) {
@@ -158,6 +240,11 @@ function fillFormFromFilters(filters = {}) {
   if (filters.pb_max != null) form.pb_max = String(filters.pb_max)
   if (filters.dy_min != null) form.dy_min = String(filters.dy_min)
   form.roe_min_streak = Number(filters.roe_min_streak || 0) >= 2
+  for (const field of ADVANCED_FILTER_FIELDS) {
+    const value = filters[field.key]
+    if (value == null) continue
+    form[field.key] = field.unit === 'percent' ? ratioToPctInput(value) : String(value)
+  }
 }
 
 async function loadMeta() {
@@ -173,6 +260,7 @@ function writeUrlState() {
   if (syncingUrl.value) return
   try {
     const params = new URLSearchParams()
+    params.set('view', 'screener')
     if (form.preset) params.set('preset', form.preset)
     if (form.market && form.market !== 'both') params.set('market', form.market)
     if (form.industry) params.set('industry', form.industry)
@@ -190,6 +278,9 @@ function writeUrlState() {
     if (form.pb_max !== '') params.set('pb_max', form.pb_max)
     if (form.dy_min !== '') params.set('dy_min', form.dy_min)
     if (form.roe_min_streak) params.set('roe_min_streak', '2')
+    for (const key of ADVANCED_FILTER_KEYS) {
+      if (form[key] !== '') params.set(key, form[key])
+    }
     if (form.sort && form.sort !== 'roe') params.set('sort', form.sort)
     if (form.dir && form.dir !== 'desc') params.set('dir', form.dir)
     if (form.page > 1) params.set('page', String(form.page))
@@ -205,8 +296,7 @@ function writeUrlState() {
 function readUrlState() {
   try {
     const params = new URLSearchParams(window.location.search)
-    const isScreenerPath = window.location.pathname.replace(/\/+$/, '') === '/financial-screener'
-    if (!isScreenerPath && (params.get('view') || '') !== 'screener' && !params.get('preset') && !params.get('roe_min')) {
+    if ((params.get('view') || '') !== 'screener' && !params.get('preset') && !params.get('roe_min')) {
       return false
     }
     syncingUrl.value = true
@@ -226,6 +316,9 @@ function readUrlState() {
     if (params.has('pe_max')) form.pe_max = params.get('pe_max') || ''
     if (params.has('pb_max')) form.pb_max = params.get('pb_max') || ''
     if (params.has('dy_min')) form.dy_min = params.get('dy_min') || ''
+    for (const key of ADVANCED_FILTER_KEYS) {
+      if (params.has(key)) form[key] = params.get(key) || ''
+    }
     form.roe_min_streak = params.get('roe_min_streak') === '2' || params.get('roe_min_streak') === '1'
     if (params.has('sort')) form.sort = params.get('sort') || 'roe'
     if (params.has('dir')) form.dir = params.get('dir') || 'desc'
@@ -325,44 +418,24 @@ function marketLabel(m) {
   return m || '—'
 }
 
-function csvEscape(v) {
-  const s = v == null ? '' : String(v)
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
+function formatResultValue(row, column) {
+  return formatRatio(column.key, row[column.key], column.unit)
 }
 
-function rowToCsvLine(row) {
-  const cells = [
-    row.code,
-    row.name,
-    marketLabel(row.market),
-    row.industry,
-    row.roe,
-    row.roa,
-    row.gross_margin,
-    row.op_margin,
-    row.net_margin,
-    row.debt_ratio,
-    row.current_ratio,
-    row.quick_ratio,
-    row.revenue,
-    row.pe,
-    row.pb,
-    row.dy,
-  ]
-  return cells.map(csvEscape).join(',')
+function htmlEscape(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
 }
 
-async function exportCsv() {
+async function exportExcel() {
   if (!allowed.value || exporting.value) return
   exporting.value = true
   error.value = ''
   try {
-    const header = [
-      '代號', '名稱', '市場', '產業', 'ROE', 'ROA', '毛利率', '營業利益率', '淨利率',
-      '負債比', '流動比', '速動比', '營收', '本益比', '股價淨值比', '殖利率',
-    ].join(',')
-    const lines = [header]
+    const rows = []
     const maxRows = 2000
     const size = 100
     let page = 1
@@ -371,21 +444,40 @@ async function exportCsv() {
     while (fetched < totalCount && fetched < maxRows) {
       const data = await api.screener(buildQuery({ page, pageSize: size }))
       totalCount = Number(data.total) || 0
-      const rows = data.items || []
-      if (!rows.length) break
-      for (const row of rows) {
-        lines.push(rowToCsvLine(row))
+      const batch = data.items || []
+      if (!batch.length) break
+      for (const row of batch) {
+        rows.push(row)
         fetched += 1
         if (fetched >= maxRows) break
       }
-      if (rows.length < size) break
+      if (batch.length < size) break
       page += 1
     }
-    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+    const baseColumns = [
+      ['code', '代號'], ['name', '名稱'], ['market', '市場'], ['industry', '產業'],
+      ['roe', 'ROE'], ['roa', 'ROA'], ['gross_margin', '毛利率'], ['op_margin', '營業利益率'],
+      ['net_margin', '淨利率'], ['debt_ratio', '負債比'], ['current_ratio', '流動比'],
+      ['quick_ratio', '速動比'], ['revenue', '營收'], ['pe', '本益比'],
+      ['pb', '股價淨值比'], ['dy', '殖利率'],
+    ].map(([key, label]) => ({ key, label }))
+    const columns = [...baseColumns, ...ADVANCED_RESULT_COLUMNS]
+    const header = columns.map((column) => `<th>${htmlEscape(column.label)}</th>`).join('')
+    const body = rows.map((row) => {
+      const cells = columns.map((column) => {
+        let value = row[column.key]
+        if (column.key === 'market') value = marketLabel(value)
+        if (column.unit) value = formatResultValue(row, column)
+        return `<td>${htmlEscape(value ?? '')}</td>`
+      }).join('')
+      return `<tr>${cells}</tr>`
+    }).join('')
+    const workbook = `\uFEFF<html><head><meta charset="utf-8"></head><body><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></body></html>`
+    const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `財務選股_${result.value?.period || 'latest'}.csv`
+    a.download = `財務選股_${result.value?.period || 'latest'}.xls`
     a.click()
     URL.revokeObjectURL(url)
   } catch (e) {
@@ -590,6 +682,22 @@ onMounted(async () => {
           <span class="check-hint">當季＋上一季皆達 ROE 門檻</span>
         </span>
       </label>
+      <fieldset
+        v-for="group in ADVANCED_FILTER_GROUPS"
+        :key="group.id"
+        class="filter-group"
+      >
+        <legend>{{ group.title }}</legend>
+        <label v-for="field in group.fields" :key="field.key">
+          <span>{{ field.label }}</span>
+          <input
+            v-model="form[field.key]"
+            type="number"
+            step="0.01"
+            :placeholder="field.placeholder"
+          />
+        </label>
+      </fieldset>
       <div class="filter-actions">
         <button class="cta" type="submit" :disabled="loading">套用條件</button>
         <button class="ghost" type="button" :disabled="loading" @click="clearFilters">清除</button>
@@ -618,9 +726,9 @@ onMounted(async () => {
           type="button"
           class="ghost export-btn"
           :disabled="loading || exporting || !total"
-          @click="exportCsv"
+          @click="exportExcel"
         >
-          {{ exporting ? '匯出中…' : '匯出 CSV' }}
+          {{ exporting ? '匯出中…' : '匯出 Excel' }}
         </button>
         <span class="page-ctrl">
           <button type="button" class="page-btn" :disabled="form.page <= 1 || loading" @click="goPage(-1)">上一頁</button>
@@ -648,11 +756,19 @@ onMounted(async () => {
             <th class="num sortable" @click="toggleSort('pe')">本益比{{ sortMark('pe') }}</th>
             <th class="num sortable" @click="toggleSort('pb')">淨值比{{ sortMark('pb') }}</th>
             <th class="num sortable" @click="toggleSort('dy')">殖利率{{ sortMark('dy') }}</th>
+            <th
+              v-for="column in ADVANCED_RESULT_COLUMNS"
+              :key="column.key"
+              class="num sortable"
+              @click="toggleSort(column.key)"
+            >
+              {{ column.label }}{{ sortMark(column.key) }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!loading && !filteredItems.length">
-            <td colspan="14" class="empty muted">沒有符合條件的股票，請放寬條件後再試</td>
+            <td :colspan="resultColumnCount" class="empty muted">沒有符合條件的股票，請放寬條件後再試</td>
           </tr>
           <tr
             v-for="row in filteredItems"
@@ -677,6 +793,13 @@ onMounted(async () => {
             <td class="num mono">{{ row.pe != null ? row.pe.toFixed(1) : '—' }}</td>
             <td class="num mono">{{ row.pb != null ? row.pb.toFixed(2) : '—' }}</td>
             <td class="num mono">{{ row.dy != null ? `${row.dy.toFixed(1)}%` : '—' }}</td>
+            <td
+              v-for="column in ADVANCED_RESULT_COLUMNS"
+              :key="column.key"
+              class="num mono"
+            >
+              {{ formatResultValue(row, column) }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -901,6 +1024,24 @@ a.pro-gate__link {
   font-size: 0.75rem;
 }
 
+.filter-group {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba(45, 212, 191, 0.18);
+}
+
+.filter-group legend {
+  padding: 0 0.4rem;
+  color: var(--aqua);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
 .filter-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -961,7 +1102,7 @@ a.pro-gate__link {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1180px;
+  min-width: 3200px;
 }
 
 th, td {
@@ -1041,6 +1182,7 @@ thead .sticky {
 @media (max-width: 1023px) {
   .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .brand-title { font-size: 1.15rem; }
 }
 
@@ -1103,6 +1245,11 @@ thead .sticky {
   .filters {
     grid-template-columns: 1fr;
     padding: 0.75rem;
+  }
+
+  .filter-group {
+    grid-template-columns: 1fr;
+    padding: 0.65rem;
   }
 
   .filters input,

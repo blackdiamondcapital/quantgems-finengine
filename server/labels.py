@@ -329,6 +329,30 @@ LABELS_ZH = {
     "borrowings_ratio": "借款比率",
     "cash_cl_ratio": "現金對流動負債比",
     "working_capital": "營運資金",
+    "operating_cash_flow": "營業活動現金流量",
+    "free_cash_flow": "自由現金流量",
+    "operating_cash_to_net_income": "營業現金流對淨利比",
+    "free_cash_flow_margin": "自由現金流率",
+    "roic": "投入資本報酬率（ROIC）",
+    "interest_coverage": "利息保障倍數",
+    "asset_turnover": "總資產週轉率",
+    "inventory_turnover": "存貨週轉率",
+    "receivable_turnover": "應收帳款週轉率",
+    "payable_turnover": "應付帳款週轉率",
+    "inventory_days": "存貨天數",
+    "receivable_days": "應收帳款天數",
+    "payable_days": "應付帳款天數",
+    "cash_conversion_cycle": "現金轉換週期",
+    "revenue_yoy": "營收年增率",
+    "op_profit_yoy": "營業利益年增率",
+    "eps_yoy": "EPS 年增率",
+    "revenue_cagr_3y": "營收三年複合成長率",
+    "eps_cagr_3y": "EPS 三年複合成長率",
+    "book_value_per_share": "每股淨值",
+    "free_cash_flow_per_share": "每股自由現金流",
+    "dupont_net_margin": "杜邦淨利率",
+    "dupont_asset_turnover": "杜邦資產週轉率",
+    "dupont_equity_multiplier": "杜邦權益乘數",
 }
 
 EMPHASIS_KEYS = {
@@ -370,15 +394,96 @@ RATIO_KEYS = [
     "quick_ratio",
     "cash_ratio",
     "cash_cl_ratio",
+    "operating_cash_flow",
+    "free_cash_flow",
+    "operating_cash_to_net_income",
+    "free_cash_flow_margin",
+    "roic",
+    "interest_coverage",
+    "asset_turnover",
+    "inventory_turnover",
+    "receivable_turnover",
+    "payable_turnover",
+    "inventory_days",
+    "receivable_days",
+    "payable_days",
+    "cash_conversion_cycle",
+    "revenue_yoy",
+    "op_profit_yoy",
+    "eps_yoy",
+    "revenue_cagr_3y",
+    "eps_cagr_3y",
+    "book_value_per_share",
+    "free_cash_flow_per_share",
+    "dupont_net_margin",
+    "dupont_asset_turnover",
+    "dupont_equity_multiplier",
 ]
 
-# 以倍數顯示（非百分比）
+# API 與前端共用的單位契約；percent 值一律使用 DB 小數（0.15 = 15%）。
+RATIO_UNITS = {
+    **{
+        key: "percent"
+        for key in (
+            "gross_margin",
+            "op_margin",
+            "net_margin",
+            "roa",
+            "roe",
+            "debt_ratio",
+            "equity_ratio",
+            "borrowings_ratio",
+            "free_cash_flow_margin",
+            "roic",
+            "revenue_yoy",
+            "op_profit_yoy",
+            "eps_yoy",
+            "revenue_cagr_3y",
+            "eps_cagr_3y",
+            "dupont_net_margin",
+        )
+    },
+    **{
+        key: "multiple"
+        for key in (
+            "current_ratio",
+            "quick_ratio",
+            "cash_ratio",
+            "cash_cl_ratio",
+            "debt_to_equity",
+            "operating_cash_to_net_income",
+            "interest_coverage",
+            "asset_turnover",
+            "inventory_turnover",
+            "receivable_turnover",
+            "payable_turnover",
+            "dupont_asset_turnover",
+            "dupont_equity_multiplier",
+        )
+    },
+    **{
+        key: "days"
+        for key in (
+            "inventory_days",
+            "receivable_days",
+            "payable_days",
+            "cash_conversion_cycle",
+        )
+    },
+    **{
+        key: "currency"
+        for key in (
+            "operating_cash_flow",
+            "free_cash_flow",
+            "book_value_per_share",
+            "free_cash_flow_per_share",
+        )
+    },
+}
+
+# 以倍數顯示（非百分比），保留給舊版消費端相容。
 RATIO_MULTIPLE_KEYS = {
-    "current_ratio",
-    "quick_ratio",
-    "cash_ratio",
-    "cash_cl_ratio",
-    "debt_to_equity",
+    key for key, unit in RATIO_UNITS.items() if unit == "multiple"
 }
 
 # 受損益單季／累計影響，需依換算後損益重算
@@ -388,6 +493,20 @@ INCOME_LINKED_RATIO_KEYS = {
     "net_margin",
     "roa",
     "roe",
+}
+
+FINANCIAL_NOT_APPLICABLE_RATIO_KEYS = {
+    "roic",
+    "asset_turnover",
+    "inventory_turnover",
+    "receivable_turnover",
+    "payable_turnover",
+    "inventory_days",
+    "receivable_days",
+    "payable_days",
+    "cash_conversion_cycle",
+    "dupont_asset_turnover",
+    "dupont_equity_multiplier",
 }
 
 RATIO_SECTIONS = [
@@ -405,6 +524,57 @@ RATIO_SECTIONS = [
         "liquidity",
         "流動性",
         ["current_ratio", "quick_ratio", "cash_ratio", "cash_cl_ratio"],
+    ),
+    (
+        "cashflow_quality",
+        "現金流品質",
+        [
+            "operating_cash_flow",
+            "free_cash_flow",
+            "operating_cash_to_net_income",
+            "free_cash_flow_margin",
+            "roic",
+            "interest_coverage",
+        ],
+    ),
+    (
+        "efficiency",
+        "營運效率",
+        [
+            "asset_turnover",
+            "inventory_turnover",
+            "receivable_turnover",
+            "payable_turnover",
+            "inventory_days",
+            "receivable_days",
+            "payable_days",
+            "cash_conversion_cycle",
+        ],
+    ),
+    (
+        "growth",
+        "成長性",
+        [
+            "revenue_yoy",
+            "op_profit_yoy",
+            "eps_yoy",
+            "revenue_cagr_3y",
+            "eps_cagr_3y",
+        ],
+    ),
+    (
+        "per_share",
+        "每股指標",
+        ["book_value_per_share", "free_cash_flow_per_share"],
+    ),
+    (
+        "dupont",
+        "杜邦分析",
+        [
+            "dupont_net_margin",
+            "dupont_asset_turnover",
+            "dupont_equity_multiplier",
+        ],
     ),
 ]
 

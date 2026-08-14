@@ -17,10 +17,12 @@ from psycopg2.extras import RealDictCursor
 from labels import (
     EMPHASIS_KEYS,
     EPS_KEYS,
+    FINANCIAL_NOT_APPLICABLE_RATIO_KEYS,
     LABELS_ZH,
     RATIO_KEYS,
     RATIO_MULTIPLE_KEYS,
     RATIO_SECTIONS,
+    RATIO_UNITS,
     INCOME_LINKED_RATIO_KEYS,
 )
 from fields import (
@@ -230,6 +232,17 @@ def table_columns(table: str) -> list[str]:
     return data_cols
 
 
+def schema_select_expressions(
+    requested: list[str], available: set[str], *, alias: str = ""
+) -> list[str]:
+    """建立缺欄安全的 SELECT；缺少的 materialized 欄位以 NULL 回傳。"""
+    prefix = f"{alias}." if alias else ""
+    return [
+        f'{prefix}"{key}"' if key in available else f'NULL AS "{key}"'
+        for key in requested
+    ]
+
+
 @app.get("/api/health")
 def health():
     try:
@@ -274,6 +287,7 @@ def meta():
             "emphasis": sorted(EMPHASIS_KEYS),
             "epsKeys": sorted(EPS_KEYS),
             "ratioKeys": RATIO_KEYS,
+            "ratioUnits": RATIO_UNITS,
         }
     )
 
@@ -405,7 +419,8 @@ def report_overview(code: str):
                        debt_ratio, current_ratio, quick_ratio,
                        revenue, gross_profit, op_profit, net_profit, assets, equity
                 FROM {ratios_t}
-                WHERE symbol = %s OR symbol = %s OR REPLACE(symbol, '.TW', '') = %s
+                WHERE symbol = %s OR symbol = %s
+                   OR REPLACE(REPLACE(symbol, '.TWO', ''), '.TW', '') = %s
                 ORDER BY period DESC
                 LIMIT 16
                 """,
@@ -528,16 +543,47 @@ def _rows_by_period(rows: list[dict]) -> dict[str, dict]:
     return {str(r.get("period")): r for r in rows if r.get("period") is not None}
 
 
+def _is_financial_symbol(code: str) -> bool:
+    table = TABLES["symbols"]
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                    SELECT name, short_name, industry
+                    FROM {table}
+                    WHERE REPLACE(REPLACE(symbol, '.TWO', ''), '.TW', '') = %s
+                    LIMIT 1
+                    """,
+                    (code,),
+                )
+                row = cur.fetchone() or {}
+    except Exception:
+        return False
+    text = " ".join(
+        str(row.get(key) or "") for key in ("name", "short_name", "industry")
+    ).lower()
+    return any(
+        word in text
+        for word in ("金融", "金控", "銀行", "保險", "證券", "票券", "bank", "insurance")
+    )
+
+
 def _fetch_ratio_rows(code: str, *, limit: int, periods: Optional[list[str]] = None) -> list[dict]:
     table = TABLES["ratios"]
     rsym = ratio_symbol(code)
+    available = set(table_columns(table))
+    fields = ", ".join(schema_select_expressions(RATIO_KEYS, available))
     with get_conn() as conn:
         with conn.cursor() as cur:
             if periods:
                 cur.execute(
                     f"""
-                    SELECT * FROM {table}
-                    WHERE (symbol = %s OR symbol = %s OR REPLACE(symbol, '.TW', '') = %s)
+                    SELECT period, {fields} FROM {table}
+                    WHERE (
+                      symbol = %s OR symbol = %s
+                      OR REPLACE(REPLACE(symbol, '.TWO', ''), '.TW', '') = %s
+                    )
                       AND period = ANY(%s)
                     ORDER BY period DESC
                     """,
@@ -546,8 +592,9 @@ def _fetch_ratio_rows(code: str, *, limit: int, periods: Optional[list[str]] = N
             else:
                 cur.execute(
                     f"""
-                    SELECT * FROM {table}
-                    WHERE symbol = %s OR symbol = %s OR REPLACE(symbol, '.TW', '') = %s
+                    SELECT period, {fields} FROM {table}
+                    WHERE symbol = %s OR symbol = %s
+                       OR REPLACE(REPLACE(symbol, '.TWO', ''), '.TW', '') = %s
                     ORDER BY period DESC
                     LIMIT %s
                     """,
@@ -568,9 +615,11 @@ def _compute_ratio_fallback(
     key: str,
     income_row: Optional[dict],
     balance_row: Optional[dict],
+    cashflow_row: Optional[dict] = None,
 ) -> Optional[float]:
     income_row = income_row or {}
     balance_row = balance_row or {}
+    cashflow_row = cashflow_row or {}
     rev = to_number(income_row.get("Revenue"))
     gp = to_number(income_row.get("GrossProfitFromOperations"))
     op = to_number(income_row.get("ProfitLossFromOperatingActivities"))
@@ -586,6 +635,17 @@ def _compute_ratio_fallback(
     ca = _first_number(balance_row, "CurrentAssets", "TotalCurrentAssets")
     cl = _first_number(balance_row, "CurrentLiabilities", "TotalCurrentLiabilities")
     cash = to_number(balance_row.get("CashAndCashEquivalents"))
+    cfo = _first_number(
+        cashflow_row,
+        "NetCashFlowsFromUsedInOperatingActivities",
+        "CashFlowsFromUsedInOperations",
+    )
+    capex = _first_number(
+        cashflow_row,
+        "AcquisitionOfPropertyPlantAndEquipment",
+        "AcquisitionOfIntangibleAssets",
+    )
+    fcf = cfo - abs(capex) if cfo is not None and capex is not None else None
 
     if key == "gross_margin":
         return safe_div(gp, rev)
@@ -610,6 +670,14 @@ def _compute_ratio_fallback(
         return safe_div(ca, cl)
     if key == "cash_ratio" or key == "cash_cl_ratio":
         return safe_div(cash, cl)
+    if key == "operating_cash_flow":
+        return cfo
+    if key == "free_cash_flow":
+        return fcf
+    if key == "operating_cash_to_net_income":
+        return safe_div(cfo, np_)
+    if key == "free_cash_flow_margin":
+        return safe_div(fcf, rev)
     return None
 
 
@@ -619,6 +687,7 @@ def _ratio_value_for_period(
     ratio_by_period: dict[str, dict],
     income_by_period: dict[str, dict],
     balance_by_period: dict[str, dict],
+    cashflow_by_period: Optional[dict[str, dict]] = None,
     *,
     prefer_computed_income: bool = False,
 ) -> Optional[float]:
@@ -628,6 +697,7 @@ def _ratio_value_for_period(
             key,
             income_by_period.get(period),
             balance_by_period.get(period),
+            (cashflow_by_period or {}).get(period),
         )
         if computed is not None:
             return computed
@@ -640,6 +710,7 @@ def _ratio_value_for_period(
         key,
         income_by_period.get(period),
         balance_by_period.get(period),
+        (cashflow_by_period or {}).get(period),
     )
 
 
@@ -649,12 +720,16 @@ def build_ratio_sections(
     ratio_rows: list[dict],
     income_rows: list[dict],
     balance_rows: list[dict],
+    cashflow_rows: Optional[list[dict]] = None,
     only_with_values: bool = True,
     prefer_computed_income: bool = False,
+    not_applicable_keys: Optional[set[str]] = None,
 ) -> list[dict]:
     ratio_by = _rows_by_period(ratio_rows)
     income_by = _rows_by_period(income_rows)
     balance_by = _rows_by_period(balance_rows)
+    cashflow_by = _rows_by_period(cashflow_rows or [])
+    guarded_keys = not_applicable_keys or set()
     sections = []
     for sid, title, keys in RATIO_SECTIONS:
         items = []
@@ -668,13 +743,19 @@ def build_ratio_sections(
                     ratio_by,
                     income_by,
                     balance_by,
+                    cashflow_by,
                     prefer_computed_income=prefer_computed_income,
                 )
                 values[p] = val
                 if val is not None:
                     any_val = True
-            if only_with_values and not any_val:
+            if only_with_values and not any_val and key not in guarded_keys:
                 continue
+            not_applicable = key in guarded_keys
+            has_materialized = any(
+                to_number((ratio_by.get(p) or {}).get(key)) is not None
+                for p in periods
+            )
             items.append(
                 {
                     "key": key,
@@ -683,6 +764,16 @@ def build_ratio_sections(
                     "isEps": False,
                     "isRatio": True,
                     "isMultiple": key in RATIO_MULTIPLE_KEYS,
+                    "unit": RATIO_UNITS.get(key, "percent"),
+                    "applicable": not not_applicable,
+                    "applicability": {
+                        p: not not_applicable for p in periods
+                    },
+                    "source": (
+                        "materialized"
+                        if has_materialized
+                        else ("fallback" if any_val else None)
+                    ),
                     "values": values,
                 }
             )
@@ -709,9 +800,11 @@ def build_ratios_statement(
         periods = [str(r.get("period")) for r in ratio_rows if r.get("period")]
         income_rows = []
         balance_rows = []
+        cashflow_rows = []
         ratio_rows = ratio_rows[:limit]
     else:
         balance_rows = _fetch_table_rows(code, "balance", limit=limit, periods=periods)
+        cashflow_rows = _fetch_table_rows(code, "cashflow", limit=limit, periods=periods)
         ratio_rows = _fetch_ratio_rows(code, limit=limit, periods=periods)
 
     sections = build_ratio_sections(
@@ -719,8 +812,14 @@ def build_ratios_statement(
         ratio_rows=ratio_rows,
         income_rows=income_rows,
         balance_rows=balance_rows,
+        cashflow_rows=cashflow_rows,
         only_with_values=only_with_values,
         prefer_computed_income=True,
+        not_applicable_keys=(
+            FINANCIAL_NOT_APPLICABLE_RATIO_KEYS
+            if _is_financial_symbol(code)
+            else set()
+        ),
     )
     field_total = sum(len(keys) for _, _, keys in RATIO_SECTIONS)
     return {
@@ -804,8 +903,14 @@ def build_combined_statement(
         ratio_rows=ratio_rows,
         income_rows=income_rows,
         balance_rows=balance_rows,
+        cashflow_rows=cash_rows,
         only_with_values=only_with_values,
         prefer_computed_income=True,
+        not_applicable_keys=(
+            FINANCIAL_NOT_APPLICABLE_RATIO_KEYS
+            if _is_financial_symbol(code)
+            else set()
+        ),
     )
     sections.extend(ratio_sections)
 

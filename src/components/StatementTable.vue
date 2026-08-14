@@ -47,8 +47,12 @@ function cell(item, periodValue) {
   return item.values?.[periodValue]
 }
 
-function formatCell(item, value) {
-  if (item?.isRatio) return formatRatio(item.key, value)
+function formatCell(item, value, period) {
+  if (item?.isRatio) {
+    return formatRatio(item.key, value, item.unit, {
+      applicable: item.applicability?.[period] ?? item.applicable,
+    })
+  }
   return formatMoney(value, { isEps: item?.isEps })
 }
 
@@ -125,7 +129,7 @@ function delta(item, periodValue, idx) {
                 class="col-num mono"
                 :class="changeClass(cell(item, p.value), cell(item, periods[idx + 1]?.value))"
               >
-                <div class="val">{{ formatCell(item, cell(item, p.value)) }}</div>
+                <div class="val">{{ formatCell(item, cell(item, p.value), p.value) }}</div>
                 <div v-if="delta(item, p.value, idx) != null" class="delta">
                   {{ delta(item, p.value, idx) > 0 ? '+' : '' }}{{ delta(item, p.value, idx).toFixed(1) }}%
                 </div>
