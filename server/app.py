@@ -136,7 +136,9 @@ def get_conn():
 
 def normalize_code(raw: str) -> str:
     s = (raw or "").strip().upper()
-    s = s.replace(".TW", "").replace(".TWO", "")
+    # 必須把完整市場後綴一次移除；若先 replace(".TW")，
+    # 上櫃代號 8277.TWO 會被截成 8277O。
+    s = re.sub(r"\.(?:TWO|TW)$", "", s)
     s = re.sub(r"[^0-9A-Z]", "", s)
     return s
 
