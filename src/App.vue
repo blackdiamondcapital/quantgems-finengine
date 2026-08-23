@@ -30,7 +30,14 @@ if (typeof window !== 'undefined') {
 const view = ref(initialView)
 const stats = ref(null)
 const ready = ref(false)
-const seedCode = ref('2330')
+const seedCode = ref((() => {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('symbol') || ''
+    return raw.trim().toUpperCase().replace(/\.(TW|TWO)$/i, '') || '2330'
+  } catch {
+    return '2330'
+  }
+})())
 const authStatus = ref('')
 
 watch(view, updatePageSeo, { immediate: true })
