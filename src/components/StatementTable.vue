@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { changeClass, changePct, formatMoney, formatRatio } from '../utils/format'
 
 const props = defineProps({
@@ -11,8 +11,14 @@ const props = defineProps({
 const emit = defineEmits(['toggle-full'])
 
 const query = ref('')
+const scrollerRef = ref(null)
+const scrollCanLeft = ref(false)
+const scrollCanRight = ref(false)
+const isMobile = ref(false)
 
 const periods = computed(() => props.payload?.periods || [])
+const periodCount = computed(() => periods.value.length)
+const showPeriodNav = computed(() => isMobile.value && periodCount.value > 2)
 
 const totalFields = computed(
   () => props.payload?.fieldTotal ?? props.fieldTotal ?? null,
@@ -62,6 +68,54 @@ function delta(item, periodValue, idx) {
   const prev = cell(item, periods.value[idx + 1]?.value)
   return changePct(curr, prev)
 }
+
+function updateScrollHints() {
+  const el = scrollerRef.value
+  if (!el) {
+    scrollCanLeft.value = false
+    scrollCanRight.value = false
+    return
+  }
+  const maxScroll = el.scrollWidth - el.clientWidth
+  scrollCanLeft.value = el.scrollLeft > 4
+  scrollCanRight.value = maxScroll - el.scrollLeft > 4
+}
+
+function scrollByColumn(direction) {
+  const el = scrollerRef.value
+  if (!el) return
+  el.scrollBy({ left: direction * 120, behavior: 'smooth' })
+}
+
+function syncMobile() {
+  isMobile.value = window.matchMedia('(max-width: 767px)').matches
+  updateScrollHints()
+}
+
+watch(
+  () => [props.payload, props.loading, periodCount.value],
+  async () => {
+    await nextTick()
+    updateScrollHints()
+  },
+)
+
+watch(scrollerRef, (el, _, onCleanup) => {
+  if (!el) return
+  updateScrollHints()
+  const observer = new ResizeObserver(() => updateScrollHints())
+  observer.observe(el)
+  onCleanup(() => observer.disconnect())
+}, { flush: 'post' })
+
+onMounted(() => {
+  syncMobile()
+  window.addEventListener('resize', syncMobile, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncMobile)
+})
 </script>
 
 <template>
@@ -96,7 +150,50 @@ function delta(item, periodValue, idx) {
     <div v-else-if="!payload || !sections.length" class="state muted">
       {{ query ? '找不到符合的科目' : '尚無此報表資料' }}
     </div>
-    <div v-else class="scroller">
+    <template v-else>
+      <div v-if="periodCount" class="period-bar">
+        <span class="period-badge mono">共 {{ periodCount }} 期</span>
+        <span v-if="showPeriodNav" class="period-hint muted">
+          <template v-if="scrollCanRight">← 左右滑動查看更多季度 →</template>
+          <template v-else>已滑至最早季度</template>
+        </span>
+        <div v-if="showPeriodNav" class="period-nav" aria-label="季度捲動">
+          <button
+            type="button"
+            class="period-nav-btn"
+            :disabled="!scrollCanLeft"
+            aria-label="較新季度"
+            @click="scrollByColumn(-1)"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            class="period-nav-btn"
+            :disabled="!scrollCanRight"
+            aria-label="較舊季度"
+            @click="scrollByColumn(1)"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+      <div class="scroller-wrap">
+        <div
+          v-if="scrollCanLeft"
+          class="scroll-fade scroll-fade--left"
+          aria-hidden="true"
+        />
+        <div
+          v-if="scrollCanRight"
+          class="scroll-fade scroll-fade--right"
+          aria-hidden="true"
+        />
+        <div
+          ref="scrollerRef"
+          class="scroller"
+          @scroll="updateScrollHints"
+        >
       <table>
         <thead>
           <tr>
@@ -138,7 +235,9 @@ function delta(item, periodValue, idx) {
           </template>
         </tbody>
       </table>
-    </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -201,9 +300,83 @@ function delta(item, periodValue, idx) {
   text-align: center;
 }
 
+.period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid rgba(232, 228, 220, 0.06);
+  background: rgba(45, 212, 191, 0.04);
+}
+
+.period-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  color: var(--aqua);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.period-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.period-nav {
+  display: none;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.period-nav-btn {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(8, 10, 14, 0.85);
+  color: var(--aqua);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.period-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.scroller-wrap {
+  position: relative;
+}
+
+.scroll-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.scroll-fade--left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(10, 12, 18, 0.95), transparent);
+}
+
+.scroll-fade--right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(10, 12, 18, 0.95), transparent);
+}
+
 .scroller {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
   max-height: min(70vh, 720px);
 }
 
@@ -306,6 +479,22 @@ thead .sticky {
 
   .toggle-full {
     min-height: 40px;
+  }
+
+  .period-bar {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .period-nav {
+    display: inline-flex;
+  }
+
+  .scroll-fade--left {
+    width: 22px;
+  }
+
+  .scroll-fade--right {
+    width: 36px;
   }
 
   .scroller {
