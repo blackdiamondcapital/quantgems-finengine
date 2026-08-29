@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { changeClass, changePct, formatMoney, formatRatio } from '../utils/format'
 
 const props = defineProps({
@@ -11,9 +11,6 @@ const props = defineProps({
 const emit = defineEmits(['toggle-full'])
 
 const query = ref('')
-const scrollerRef = ref(null)
-const scrollCanLeft = ref(false)
-const scrollCanRight = ref(false)
 
 const periods = computed(() => props.payload?.periods || [])
 
@@ -77,42 +74,6 @@ function formatDelta(item, periodValue) {
   return `${d > 0 ? '+' : ''}${d.toFixed(1)}%`
 }
 
-function updateScrollHints() {
-  const el = scrollerRef.value
-  if (!el) {
-    scrollCanLeft.value = false
-    scrollCanRight.value = false
-    return
-  }
-  const maxScroll = el.scrollWidth - el.clientWidth
-  scrollCanLeft.value = el.scrollLeft > 4
-  scrollCanRight.value = maxScroll - el.scrollLeft > 4
-}
-
-watch(
-  () => [props.payload, props.loading, periods.value.length],
-  async () => {
-    await nextTick()
-    updateScrollHints()
-  },
-)
-
-watch(scrollerRef, (el, _, onCleanup) => {
-  if (!el) return
-  updateScrollHints()
-  const observer = new ResizeObserver(() => updateScrollHints())
-  observer.observe(el)
-  onCleanup(() => observer.disconnect())
-}, { flush: 'post' })
-
-onMounted(() => {
-  updateScrollHints()
-  window.addEventListener('resize', updateScrollHints, { passive: true })
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateScrollHints)
-})
 </script>
 
 <template>
@@ -149,21 +110,7 @@ onUnmounted(() => {
     </div>
     <template v-else>
       <div class="scroller-wrap">
-        <div
-          v-if="scrollCanLeft"
-          class="scroll-fade scroll-fade--left"
-          aria-hidden="true"
-        />
-        <div
-          v-if="scrollCanRight"
-          class="scroll-fade scroll-fade--right"
-          aria-hidden="true"
-        />
-        <div
-          ref="scrollerRef"
-          class="scroller"
-          @scroll="updateScrollHints"
-        >
+        <div class="scroller">
       <table>
         <thead>
           <tr>
@@ -281,25 +228,6 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-.scroll-fade {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.scroll-fade--left {
-  left: 0;
-  background: linear-gradient(90deg, rgba(10, 12, 18, 0.95), transparent);
-}
-
-.scroll-fade--right {
-  right: 0;
-  background: linear-gradient(270deg, rgba(10, 12, 18, 0.95), transparent);
-}
-
 .scroller {
   overflow-x: auto;
   overflow-y: auto;
@@ -355,7 +283,6 @@ thead th {
   left: 0;
   z-index: 2;
   background: #0c1018;
-  box-shadow: 1px 0 0 rgba(232, 228, 220, 0.08);
 }
 
 thead .sticky {
@@ -430,14 +357,6 @@ thead .sticky {
 
   .toggle-full {
     min-height: 40px;
-  }
-
-  .scroll-fade--left {
-    width: 18px;
-  }
-
-  .scroll-fade--right {
-    width: 32px;
   }
 
   .scroller {
