@@ -14,11 +14,8 @@ const query = ref('')
 const scrollerRef = ref(null)
 const scrollCanLeft = ref(false)
 const scrollCanRight = ref(false)
-const isMobile = ref(false)
 
 const periods = computed(() => props.payload?.periods || [])
-const periodCount = computed(() => periods.value.length)
-const showPeriodNav = computed(() => isMobile.value && periodCount.value > 2)
 
 const totalFields = computed(
   () => props.payload?.fieldTotal ?? props.fieldTotal ?? null,
@@ -92,19 +89,8 @@ function updateScrollHints() {
   scrollCanRight.value = maxScroll - el.scrollLeft > 4
 }
 
-function scrollByColumn(direction) {
-  const el = scrollerRef.value
-  if (!el) return
-  el.scrollBy({ left: direction * Math.min(el.clientWidth * 0.72, 280), behavior: 'smooth' })
-}
-
-function syncMobile() {
-  isMobile.value = window.matchMedia('(max-width: 767px)').matches
-  updateScrollHints()
-}
-
 watch(
-  () => [props.payload, props.loading, periodCount.value],
+  () => [props.payload, props.loading, periods.value.length],
   async () => {
     await nextTick()
     updateScrollHints()
@@ -120,12 +106,12 @@ watch(scrollerRef, (el, _, onCleanup) => {
 }, { flush: 'post' })
 
 onMounted(() => {
-  syncMobile()
-  window.addEventListener('resize', syncMobile, { passive: true })
+  updateScrollHints()
+  window.addEventListener('resize', updateScrollHints, { passive: true })
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', syncMobile)
+  window.removeEventListener('resize', updateScrollHints)
 })
 </script>
 
@@ -162,34 +148,6 @@ onUnmounted(() => {
       {{ query ? '找不到符合的科目' : '尚無此報表資料' }}
     </div>
     <template v-else>
-      <div v-if="periodCount" class="period-bar">
-        <span class="period-badge mono">共 {{ periodCount }} 期</span>
-        <span v-if="showPeriodNav" class="period-hint muted">
-          <template v-if="scrollCanRight">左右滑動看全部 {{ periodCount }} 期</template>
-          <template v-else-if="scrollCanLeft">已到最早季度 · 點 ‹ 回較新</template>
-          <template v-else>全部 {{ periodCount }} 期</template>
-        </span>
-        <div v-if="showPeriodNav" class="period-nav" aria-label="季度捲動">
-          <button
-            type="button"
-            class="period-nav-btn"
-            :disabled="!scrollCanLeft"
-            aria-label="較新季度"
-            @click="scrollByColumn(-1)"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            class="period-nav-btn"
-            :disabled="!scrollCanRight"
-            aria-label="較舊季度"
-            @click="scrollByColumn(1)"
-          >
-            ›
-          </button>
-        </div>
-      </div>
       <div class="scroller-wrap">
         <div
           v-if="scrollCanLeft"
@@ -316,55 +274,6 @@ onUnmounted(() => {
 .state {
   padding: 2.5rem 1.25rem;
   text-align: center;
-}
-
-.period-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: 0.55rem 0.9rem;
-  border-bottom: 1px solid rgba(232, 228, 220, 0.06);
-  background: rgba(45, 212, 191, 0.04);
-}
-
-.period-badge {
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  padding: 0.15rem 0.5rem;
-  border: 1px solid rgba(45, 212, 191, 0.28);
-  color: var(--aqua);
-  background: rgba(45, 212, 191, 0.08);
-}
-
-.period-hint {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-}
-
-.period-nav {
-  display: none;
-  gap: 0.35rem;
-  margin-left: auto;
-}
-
-.period-nav-btn {
-  min-width: 36px;
-  min-height: 36px;
-  padding: 0;
-  border: 1px solid rgba(45, 212, 191, 0.35);
-  background: rgba(8, 10, 14, 0.85);
-  color: var(--aqua);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.period-nav-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 
 .scroller-wrap {
@@ -521,14 +430,6 @@ thead .sticky {
 
   .toggle-full {
     min-height: 40px;
-  }
-
-  .period-bar {
-    padding: 0.55rem 0.75rem;
-  }
-
-  .period-nav {
-    display: inline-flex;
   }
 
   .scroll-fade--left {
