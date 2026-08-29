@@ -15,35 +15,10 @@ const scrollerRef = ref(null)
 const scrollCanLeft = ref(false)
 const scrollCanRight = ref(false)
 const isMobile = ref(false)
-const mobilePeriodStart = ref(0)
-
-const MOBILE_PERIOD_COLS = 2
 
 const periods = computed(() => props.payload?.periods || [])
 const periodCount = computed(() => periods.value.length)
-const showPeriodNav = computed(() => isMobile.value && periodCount.value > MOBILE_PERIOD_COLS)
-
-const displayPeriods = computed(() => {
-  if (!showPeriodNav.value) return periods.value
-  return periods.value.slice(
-    mobilePeriodStart.value,
-    mobilePeriodStart.value + MOBILE_PERIOD_COLS,
-  )
-})
-
-const canShowNewerPeriods = computed(() => mobilePeriodStart.value > 0)
-const canShowOlderPeriods = computed(
-  () => mobilePeriodStart.value + MOBILE_PERIOD_COLS < periodCount.value,
-)
-
-const periodRangeLabel = computed(() => {
-  if (!showPeriodNav.value || !displayPeriods.value.length) return ''
-  const first = displayPeriods.value[0]?.label
-  const last = displayPeriods.value[displayPeriods.value.length - 1]?.label
-  if (!first || !last) return ''
-  if (first === last) return first
-  return `${first} – ${last}`
-})
+const showPeriodNav = computed(() => isMobile.value && periodCount.value > 2)
 
 const totalFields = computed(
   () => props.payload?.fieldTotal ?? props.fieldTotal ?? null,
@@ -106,7 +81,6 @@ function formatDelta(item, periodValue) {
 }
 
 function updateScrollHints() {
-  if (showPeriodNav.value) return
   const el = scrollerRef.value
   if (!el) {
     scrollCanLeft.value = false
@@ -121,26 +95,13 @@ function updateScrollHints() {
 function scrollByColumn(direction) {
   const el = scrollerRef.value
   if (!el) return
-  el.scrollBy({ left: direction * 120, behavior: 'smooth' })
-}
-
-function showNewerPeriods() {
-  mobilePeriodStart.value = Math.max(0, mobilePeriodStart.value - MOBILE_PERIOD_COLS)
-}
-
-function showOlderPeriods() {
-  const maxStart = Math.max(0, periodCount.value - MOBILE_PERIOD_COLS)
-  mobilePeriodStart.value = Math.min(maxStart, mobilePeriodStart.value + MOBILE_PERIOD_COLS)
+  el.scrollBy({ left: direction * Math.min(el.clientWidth * 0.72, 280), behavior: 'smooth' })
 }
 
 function syncMobile() {
   isMobile.value = window.matchMedia('(max-width: 767px)').matches
   updateScrollHints()
 }
-
-watch(periodCount, () => {
-  mobilePeriodStart.value = 0
-})
 
 watch(
   () => [props.payload, props.loading, periodCount.value],
@@ -204,26 +165,26 @@ onUnmounted(() => {
       <div v-if="periodCount" class="period-bar">
         <span class="period-badge mono">共 {{ periodCount }} 期</span>
         <span v-if="showPeriodNav" class="period-hint muted">
-          <template v-if="periodRangeLabel">目前 {{ periodRangeLabel }}</template>
-          <template v-if="canShowOlderPeriods"> · 點 › 看更早季度</template>
-          <template v-else-if="canShowNewerPeriods"> · 點 ‹ 回較新季度</template>
+          <template v-if="scrollCanRight">左右滑動看全部 {{ periodCount }} 期</template>
+          <template v-else-if="scrollCanLeft">已到最早季度 · 點 ‹ 回較新</template>
+          <template v-else>全部 {{ periodCount }} 期</template>
         </span>
-        <div v-if="showPeriodNav" class="period-nav" aria-label="季度切換">
+        <div v-if="showPeriodNav" class="period-nav" aria-label="季度捲動">
           <button
             type="button"
             class="period-nav-btn"
-            :disabled="!canShowNewerPeriods"
+            :disabled="!scrollCanLeft"
             aria-label="較新季度"
-            @click="showNewerPeriods"
+            @click="scrollByColumn(-1)"
           >
             ‹
           </button>
           <button
             type="button"
             class="period-nav-btn"
-            :disabled="!canShowOlderPeriods"
+            :disabled="!scrollCanRight"
             aria-label="較舊季度"
-            @click="showOlderPeriods"
+            @click="scrollByColumn(1)"
           >
             ›
           </button>
@@ -250,7 +211,7 @@ onUnmounted(() => {
           <tr>
             <th class="sticky col-item">科目</th>
             <th
-              v-for="p in displayPeriods"
+              v-for="p in periods"
               :key="p.value"
               class="col-num mono"
             >
@@ -261,7 +222,7 @@ onUnmounted(() => {
         <tbody>
           <template v-for="sec in sections" :key="sec.id">
             <tr class="section-row">
-              <td :colspan="displayPeriods.length + 1">{{ sec.section }}</td>
+              <td :colspan="periods.length + 1">{{ sec.section }}</td>
             </tr>
             <tr
               v-for="item in sec.items"
@@ -272,7 +233,7 @@ onUnmounted(() => {
                 <span class="label">{{ item.label }}</span>
               </td>
               <td
-                v-for="p in displayPeriods"
+                v-for="p in periods"
                 :key="p.value"
                 class="col-num mono"
                 :class="changeClass(cell(item, p.value), cell(item, prevPeriodValue(p.value)))"
@@ -297,6 +258,7 @@ onUnmounted(() => {
   border: 1px solid var(--line);
   background: rgba(10, 12, 18, 0.55);
   min-height: 280px;
+  min-width: 0;
 }
 
 .toolbar {
@@ -402,6 +364,7 @@ onUnmounted(() => {
 
 .scroller-wrap {
   position: relative;
+  min-width: 0;
 }
 
 .scroll-fade {
@@ -424,25 +387,28 @@ onUnmounted(() => {
 }
 
 .scroller {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   touch-action: pan-x pan-y;
   max-height: min(70vh, 720px);
   width: 100%;
+  max-width: 100%;
 }
 
 table {
   width: max-content;
-  min-width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 th, td {
   padding: 0.7rem 0.9rem;
   border-bottom: 1px solid rgba(232, 228, 220, 0.06);
   vertical-align: top;
+  white-space: nowrap;
 }
 
 thead th {
@@ -542,29 +508,42 @@ thead .sticky {
     display: inline-flex;
   }
 
+  .scroll-fade--left {
+    width: 18px;
+  }
+
+  .scroll-fade--right {
+    width: 32px;
+  }
+
   .scroller {
     max-height: min(60vh, 560px);
-    overflow-x: hidden;
+    overflow-x: scroll;
   }
 
   table {
-    width: 100%;
-    min-width: 0;
-    table-layout: auto;
+    width: max-content;
+    min-width: max-content;
   }
 
   .col-item {
-    min-width: 132px;
-    width: 38%;
+    width: 108px;
+    min-width: 108px;
+    max-width: 108px;
   }
 
   .col-num {
-    min-width: 0;
-    width: 31%;
+    width: 86px;
+    min-width: 86px;
+    max-width: 86px;
   }
 
   th, td {
-    padding: 0.6rem 0.55rem;
+    padding: 0.55rem 0.4rem;
+  }
+
+  .val {
+    font-size: 0.82rem;
   }
 }
 </style>

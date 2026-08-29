@@ -527,6 +527,7 @@ h1 {
   display: grid;
   gap: 0.75rem;
   margin-top: 1.25rem;
+  min-width: 0;
 }
 
 .tabs {
