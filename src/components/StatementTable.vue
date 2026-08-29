@@ -15,10 +15,35 @@ const scrollerRef = ref(null)
 const scrollCanLeft = ref(false)
 const scrollCanRight = ref(false)
 const isMobile = ref(false)
+const mobilePeriodStart = ref(0)
+
+const MOBILE_PERIOD_COLS = 2
 
 const periods = computed(() => props.payload?.periods || [])
 const periodCount = computed(() => periods.value.length)
-const showPeriodNav = computed(() => isMobile.value && periodCount.value > 2)
+const showPeriodNav = computed(() => isMobile.value && periodCount.value > MOBILE_PERIOD_COLS)
+
+const displayPeriods = computed(() => {
+  if (!showPeriodNav.value) return periods.value
+  return periods.value.slice(
+    mobilePeriodStart.value,
+    mobilePeriodStart.value + MOBILE_PERIOD_COLS,
+  )
+})
+
+const canShowNewerPeriods = computed(() => mobilePeriodStart.value > 0)
+const canShowOlderPeriods = computed(
+  () => mobilePeriodStart.value + MOBILE_PERIOD_COLS < periodCount.value,
+)
+
+const periodRangeLabel = computed(() => {
+  if (!showPeriodNav.value || !displayPeriods.value.length) return ''
+  const first = displayPeriods.value[0]?.label
+  const last = displayPeriods.value[displayPeriods.value.length - 1]?.label
+  if (!first || !last) return ''
+  if (first === last) return first
+  return `${first} – ${last}`
+})
 
 const totalFields = computed(
   () => props.payload?.fieldTotal ?? props.fieldTotal ?? null,
@@ -62,14 +87,26 @@ function formatCell(item, value, period) {
   return formatMoney(value, { isEps: item?.isEps })
 }
 
-function delta(item, periodValue, idx) {
-  if (idx >= periods.value.length - 1) return null
-  const curr = cell(item, periodValue)
-  const prev = cell(item, periods.value[idx + 1]?.value)
-  return changePct(curr, prev)
+function prevPeriodValue(periodValue) {
+  const idx = periods.value.findIndex((p) => p.value === periodValue)
+  if (idx < 0 || idx >= periods.value.length - 1) return undefined
+  return periods.value[idx + 1]?.value
+}
+
+function delta(item, periodValue) {
+  const prevValue = prevPeriodValue(periodValue)
+  if (prevValue == null) return null
+  return changePct(cell(item, periodValue), cell(item, prevValue))
+}
+
+function formatDelta(item, periodValue) {
+  const d = delta(item, periodValue)
+  if (d == null) return null
+  return `${d > 0 ? '+' : ''}${d.toFixed(1)}%`
 }
 
 function updateScrollHints() {
+  if (showPeriodNav.value) return
   const el = scrollerRef.value
   if (!el) {
     scrollCanLeft.value = false
@@ -87,10 +124,23 @@ function scrollByColumn(direction) {
   el.scrollBy({ left: direction * 120, behavior: 'smooth' })
 }
 
+function showNewerPeriods() {
+  mobilePeriodStart.value = Math.max(0, mobilePeriodStart.value - MOBILE_PERIOD_COLS)
+}
+
+function showOlderPeriods() {
+  const maxStart = Math.max(0, periodCount.value - MOBILE_PERIOD_COLS)
+  mobilePeriodStart.value = Math.min(maxStart, mobilePeriodStart.value + MOBILE_PERIOD_COLS)
+}
+
 function syncMobile() {
   isMobile.value = window.matchMedia('(max-width: 767px)').matches
   updateScrollHints()
 }
+
+watch(periodCount, () => {
+  mobilePeriodStart.value = 0
+})
 
 watch(
   () => [props.payload, props.loading, periodCount.value],
@@ -154,25 +204,26 @@ onUnmounted(() => {
       <div v-if="periodCount" class="period-bar">
         <span class="period-badge mono">共 {{ periodCount }} 期</span>
         <span v-if="showPeriodNav" class="period-hint muted">
-          <template v-if="scrollCanRight">← 左右滑動查看更多季度 →</template>
-          <template v-else>已滑至最早季度</template>
+          <template v-if="periodRangeLabel">目前 {{ periodRangeLabel }}</template>
+          <template v-if="canShowOlderPeriods"> · 點 › 看更早季度</template>
+          <template v-else-if="canShowNewerPeriods"> · 點 ‹ 回較新季度</template>
         </span>
-        <div v-if="showPeriodNav" class="period-nav" aria-label="季度捲動">
+        <div v-if="showPeriodNav" class="period-nav" aria-label="季度切換">
           <button
             type="button"
             class="period-nav-btn"
-            :disabled="!scrollCanLeft"
+            :disabled="!canShowNewerPeriods"
             aria-label="較新季度"
-            @click="scrollByColumn(-1)"
+            @click="showNewerPeriods"
           >
             ‹
           </button>
           <button
             type="button"
             class="period-nav-btn"
-            :disabled="!scrollCanRight"
+            :disabled="!canShowOlderPeriods"
             aria-label="較舊季度"
-            @click="scrollByColumn(1)"
+            @click="showOlderPeriods"
           >
             ›
           </button>
@@ -199,7 +250,7 @@ onUnmounted(() => {
           <tr>
             <th class="sticky col-item">科目</th>
             <th
-              v-for="p in periods"
+              v-for="p in displayPeriods"
               :key="p.value"
               class="col-num mono"
             >
@@ -210,7 +261,7 @@ onUnmounted(() => {
         <tbody>
           <template v-for="sec in sections" :key="sec.id">
             <tr class="section-row">
-              <td :colspan="periods.length + 1">{{ sec.section }}</td>
+              <td :colspan="displayPeriods.length + 1">{{ sec.section }}</td>
             </tr>
             <tr
               v-for="item in sec.items"
@@ -221,14 +272,14 @@ onUnmounted(() => {
                 <span class="label">{{ item.label }}</span>
               </td>
               <td
-                v-for="(p, idx) in periods"
+                v-for="p in displayPeriods"
                 :key="p.value"
                 class="col-num mono"
-                :class="changeClass(cell(item, p.value), cell(item, periods[idx + 1]?.value))"
+                :class="changeClass(cell(item, p.value), cell(item, prevPeriodValue(p.value)))"
               >
                 <div class="val">{{ formatCell(item, cell(item, p.value), p.value) }}</div>
-                <div v-if="delta(item, p.value, idx) != null" class="delta">
-                  {{ delta(item, p.value, idx) > 0 ? '+' : '' }}{{ delta(item, p.value, idx).toFixed(1) }}%
+                <div v-if="formatDelta(item, p.value)" class="delta">
+                  {{ formatDelta(item, p.value) }}
                 </div>
               </td>
             </tr>
@@ -378,12 +429,14 @@ onUnmounted(() => {
   overscroll-behavior-x: contain;
   touch-action: pan-x pan-y;
   max-height: min(70vh, 720px);
+  width: 100%;
 }
 
 table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  min-width: 720px;
+  table-layout: fixed;
 }
 
 th, td {
@@ -489,24 +542,29 @@ thead .sticky {
     display: inline-flex;
   }
 
-  .scroll-fade--left {
-    width: 22px;
-  }
-
-  .scroll-fade--right {
-    width: 36px;
-  }
-
   .scroller {
     max-height: min(60vh, 560px);
+    overflow-x: hidden;
+  }
+
+  table {
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
   }
 
   .col-item {
-    min-width: 140px;
+    min-width: 132px;
+    width: 38%;
+  }
+
+  .col-num {
+    min-width: 0;
+    width: 31%;
   }
 
   th, td {
-    padding: 0.6rem 0.65rem;
+    padding: 0.6rem 0.55rem;
   }
 }
 </style>
