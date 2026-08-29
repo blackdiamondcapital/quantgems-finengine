@@ -107,7 +107,18 @@ function onEnter() {
 .row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.55rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.row button.cta {
+  height: 38px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .menu {
@@ -159,13 +170,17 @@ function onEnter() {
 
 @media (max-width: 767px) {
   .row input {
-    min-height: 48px;
+    min-height: 40px;
+    height: 40px;
     font-size: 1rem;
+    padding: 0 0.75rem;
   }
 
-  .row button {
-    min-height: 48px;
-    min-width: 4.5rem;
+  .row button.cta {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 0.7rem;
+    font-size: 0.78rem;
   }
 
   .menu li {
