@@ -183,7 +183,6 @@ onMounted(async () => {
           </span>
           <span class="btn-screener__label">選股</span>
           <span class="btn-screener__pro">Pro</span>
-          <span class="btn-screener__spark" aria-hidden="true" />
         </button>
         <AuthBar />
       </div>
@@ -392,17 +391,18 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.42rem 0.95rem 0.42rem 0.7rem;
+  height: 36px;
+  padding: 0 0.75rem 0 0.55rem;
   border: 1px solid rgba(45, 212, 191, 0.45);
   border-radius: 999px;
   background:
     linear-gradient(145deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.06) 55%, rgba(212, 165, 116, 0.1));
   color: var(--aqua);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   overflow: hidden;
-  box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+  box-shadow: none;
   transition:
     transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1),
     border-color 0.2s,
@@ -442,19 +442,6 @@ onMounted(async () => {
   background: linear-gradient(135deg, var(--brass), #e8c9a0);
 }
 
-.btn-screener__spark {
-  position: absolute;
-  top: 0.28rem;
-  right: 0.45rem;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--brass);
-  opacity: 0.75;
-  box-shadow: 0 0 8px rgba(212, 165, 116, 0.75);
-  animation: screenerSpark 1.8s ease-in-out infinite;
-}
-
 .btn-screener:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.03);
   border-color: rgba(45, 212, 191, 0.85);
@@ -472,18 +459,10 @@ onMounted(async () => {
   transform: translateY(0) scale(0.98);
 }
 
-@keyframes screenerSpark {
-  0%, 100% { opacity: 0.35; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .btn-screener,
   .btn-screener__icon {
     transition: none;
-  }
-  .btn-screener__spark {
-    animation: none;
   }
 }
 
@@ -624,11 +603,12 @@ h1 {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "brand actions"
-      "nav nav";
-    gap: 0.55rem 0.65rem;
+      "brand brand"
+      "nav actions";
+    align-items: center;
+    gap: 0.7rem 0.5rem;
     margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0.7rem;
     border-bottom: 1px solid var(--line);
   }
 
@@ -642,17 +622,18 @@ h1 {
     grid-area: actions;
     margin-left: 0;
     justify-content: flex-end;
+    gap: 0.4rem;
   }
 
   .bar-nav {
     grid-area: nav;
-    width: 100%;
-    gap: 0.15rem;
-    padding-top: 0.15rem;
+    width: auto;
+    gap: 0.2rem;
+    padding-top: 0;
   }
 
   .brand-title {
-    font-size: 1.08rem;
+    font-size: 1.12rem;
     white-space: nowrap;
     gap: 6px;
   }
@@ -660,14 +641,32 @@ h1 {
   .brand-title__name { display: none; }
 
   .brand-icon {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
   }
 
   .btn-screener {
-    min-height: 40px;
-    padding: 0.4rem 0.85rem 0.4rem 0.65rem;
-    font-size: 0.84rem;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 0.6rem 0 0.45rem;
+    font-size: 0.78rem;
+    gap: 0.3rem;
+  }
+
+  .btn-screener__icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .btn-screener__icon svg {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  .btn-screener__pro {
+    font-size: 0.58rem;
+    padding: 0.06rem 0.26rem;
   }
 
   .search-block {

@@ -59,7 +59,7 @@ async function handleLogout() {
 .auth-bar {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
@@ -98,14 +98,17 @@ a.btn-auth {
 .btn-auth.subscribe {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.65rem;
+  height: 36px;
+  padding: 0 0.75rem;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
   background: var(--aqua-dim);
   border: 1px solid rgba(45, 212, 191, 0.5);
   color: #ccfbf1;
+  box-sizing: border-box;
 }
 
 .btn-auth.subscribe:hover {
@@ -127,9 +130,10 @@ a.btn-auth {
   .login-label-short { display: inline; }
 
   .btn-auth.subscribe {
-    min-height: 40px;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.78rem;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 0.65rem;
+    font-size: 0.76rem;
   }
 }
 </style>

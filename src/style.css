@@ -142,9 +142,10 @@ a.home-link:hover {
   }
 
   button.btn-auth {
-    min-height: 40px;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.78rem;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 0.65rem;
+    font-size: 0.76rem;
   }
 
   button.btn-auth.google .g-icon + span,
@@ -156,16 +157,19 @@ a.home-link:hover {
 button.btn-auth {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 36px;
+  padding: 0 0.75rem;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
+  box-sizing: border-box;
 }
 
 button.btn-auth.google {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(66, 133, 244, 0.4);
+  border: 1px solid rgba(232, 228, 220, 0.18);
   color: var(--paper);
 }
 
