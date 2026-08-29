@@ -222,7 +222,12 @@ onUnmounted(() => {
         <tbody>
           <template v-for="sec in sections" :key="sec.id">
             <tr class="section-row">
-              <td :colspan="periods.length + 1">{{ sec.section }}</td>
+              <td class="sticky col-item section-title">{{ sec.section }}</td>
+              <td
+                v-for="p in periods"
+                :key="`${sec.id}-${p.value}`"
+                class="section-fill"
+              />
             </tr>
             <tr
               v-for="item in sec.items"
@@ -400,7 +405,8 @@ onUnmounted(() => {
 table {
   width: max-content;
   min-width: max-content;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: auto;
 }
 
@@ -435,10 +441,12 @@ thead th {
 }
 
 .sticky {
+  position: -webkit-sticky;
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 2;
   background: #0c1018;
+  box-shadow: 1px 0 0 rgba(232, 228, 220, 0.08);
 }
 
 thead .sticky {
@@ -452,13 +460,20 @@ thead .sticky {
 }
 
 .section-row td {
-  background: linear-gradient(90deg, rgba(45, 212, 191, 0.1), transparent 70%);
+  padding-top: 1rem;
+  border-bottom-color: rgba(45, 212, 191, 0.18);
+}
+
+.section-row .section-title {
   color: var(--aqua);
   font-family: var(--display);
   font-size: 0.85rem;
   letter-spacing: 0.12em;
-  padding-top: 1rem;
-  border-bottom-color: rgba(45, 212, 191, 0.18);
+  background: #101820;
+}
+
+.section-row .section-fill {
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.1), transparent 70%);
 }
 
 .emphasis .label {
