@@ -426,6 +426,12 @@ thead th {
 .col-item {
   text-align: left;
   min-width: 180px;
+  max-width: 220px;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .sticky {
@@ -467,6 +473,8 @@ thead .sticky {
 
 .label {
   display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .val { font-size: 0.92rem; }
@@ -527,9 +535,10 @@ thead .sticky {
   }
 
   .col-item {
-    width: 108px;
-    min-width: 108px;
-    max-width: 108px;
+    width: 128px;
+    min-width: 128px;
+    max-width: 128px;
+    font-size: 0.78rem;
   }
 
   .col-num {
