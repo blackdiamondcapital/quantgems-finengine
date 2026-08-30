@@ -15,7 +15,7 @@
   --line-strong: rgba(45, 212, 191, 0.28);
   --display: 'Syne', 'Noto Sans TC', sans-serif;
   --sans: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --mono: 'IBM Plex Mono', 'Noto Sans TC', 'Courier New', monospace;
   --radius: 2px;
   color: var(--paper);
   background: var(--ink);
@@ -233,8 +233,8 @@ input:focus {
 
 .mono {
   font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "zero" 0;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 .muted { color: var(--muted); }
 .display { font-family: var(--display); }

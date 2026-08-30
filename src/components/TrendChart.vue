@@ -37,7 +37,7 @@ function render() {
       type: 'category',
       data: labels,
       axisLine: { lineStyle: { color: 'rgba(232,228,220,0.12)' } },
-      axisLabel: { color: '#8b929e', fontFamily: 'JetBrains Mono', fontSize: 11 },
+      axisLabel: { color: '#8b929e', fontFamily: 'IBM Plex Mono', fontSize: 11 },
     },
     yAxis: [
       {
@@ -47,7 +47,7 @@ function render() {
         splitLine: { lineStyle: { color: 'rgba(232,228,220,0.06)' } },
         axisLabel: {
           color: '#8b929e',
-          fontFamily: 'JetBrains Mono',
+          fontFamily: 'IBM Plex Mono',
           fontSize: 10,
           formatter: (v) => {
             const a = Math.abs(v)
@@ -62,7 +62,7 @@ function render() {
         name: 'EPS',
         nameTextStyle: { color: '#8b929e', fontSize: 11 },
         splitLine: { show: false },
-        axisLabel: { color: '#8b929e', fontFamily: 'JetBrains Mono', fontSize: 10 },
+        axisLabel: { color: '#8b929e', fontFamily: 'IBM Plex Mono', fontSize: 10 },
       },
     ],
     series: [
