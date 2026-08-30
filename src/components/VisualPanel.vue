@@ -283,14 +283,14 @@ function render() {
         type: 'category',
         data: labels,
         axisLine: { lineStyle: { color: 'rgba(232,228,220,0.12)' } },
-        axisLabel: { color: '#8b929e', fontFamily: 'IBM Plex Mono', fontSize: 11 },
+        axisLabel: { color: '#8b929e', fontFamily: 'Noto Sans TC', fontSize: 11 },
       },
       yAxis: {
         type: 'value',
         splitLine: { lineStyle: { color: 'rgba(232,228,220,0.06)' } },
         axisLabel: {
           color: '#8b929e',
-          fontFamily: 'IBM Plex Mono',
+          fontFamily: 'Noto Sans TC',
           fontSize: 10,
           formatter: (v) => {
             if (mode === 'percent') return `${(Number(v) * 100).toFixed(0)}%`

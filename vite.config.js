@@ -92,10 +92,10 @@ export default defineConfig(({ mode }) => {
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
-              handler: 'CacheFirst',
+              handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'font-cache',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheName: 'qg-font-cache-v2',
+                expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 14 },
               },
             },
             {

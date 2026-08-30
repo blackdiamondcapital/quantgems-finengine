@@ -30,7 +30,7 @@ const tiles = computed(() => {
   <div class="strip" v-if="highlight">
     <div v-for="t in tiles" :key="t.k" class="tile">
       <div class="k">{{ t.k }}</div>
-      <div class="v mono">{{ t.v }}</div>
+      <div class="v">{{ t.v }}</div>
       <div class="s muted">{{ t.sub }}</div>
     </div>
   </div>
@@ -64,6 +64,8 @@ const tiles = computed(() => {
   font-size: clamp(1rem, 1.8vw, 1.25rem);
   font-weight: 600;
   color: var(--paper);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -72,7 +74,8 @@ const tiles = computed(() => {
 .s {
   margin-top: 0.2rem;
   font-size: 0.72rem;
-  font-family: var(--mono);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 @media (max-width: 960px) {
