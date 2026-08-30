@@ -231,7 +231,11 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.12);
 }
 
-.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 0;
+}
 .muted { color: var(--muted); }
 .display { font-family: var(--display); }
 
